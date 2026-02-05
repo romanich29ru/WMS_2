@@ -1,0 +1,2502 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Система проверки склада - с интеграцией XLS</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #9b59b6;
+            --light-color: #ecf0f1;
+            --dark-color: #34495e;
+            --text-color: #333;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            color: var(--text-color);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ========== РЕЖИМ ОБЩЕГО ОБЗОРА ========== */
+        .overview-mode {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-panel {
+            background-color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #e1e8ed;
+            flex-shrink: 0;
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .app-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .operator-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .operator-name {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        .control-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .alley-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alley-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            white-space: nowrap;
+        }
+
+        .alley-dropdown {
+            padding: 10px 15px;
+            border: 2px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+            background-color: white;
+            font-weight: 600;
+            color: var(--primary-color);
+            min-width: 120px;
+            cursor: pointer;
+        }
+
+        .alley-dropdown:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .global-stats {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: #f8fafc;
+            border-radius: var(--border-radius);
+            min-width: 100px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .total-stat .stat-value { color: var(--secondary-color); }
+        .checked-stat .stat-value { color: var(--success-color); }
+        .discrepancy-stat .stat-value { color: var(--warning-color); }
+        .problem-stat .stat-value { color: var(--info-color); }
+
+        /* Новые кнопки управления */
+        .control-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .control-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .start-inspection-btn {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .start-inspection-btn:hover {
+            background-color: #219653;
+            transform: translateY(-2px);
+        }
+
+        .import-btn {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .import-btn:hover {
+            background-color: #8e44ad;
+            transform: translateY(-2px);
+        }
+
+        .export-btn {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .export-btn:hover {
+            background-color: #e67e22;
+            transform: translateY(-2px);
+        }
+
+        /* Обзор секций */
+        .sections-overview {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f8fafc;
+        }
+
+        .overview-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .section-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-card.active {
+            border-color: var(--secondary-color);
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .section-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .section-card-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .section-card-status {
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .status-not-started { background-color: #e2e8f0; color: #475569; }
+        .status-in-progress { background-color: #dbeafe; color: #1e40af; }
+        .status-completed { background-color: #dcfce7; color: #166534; }
+        .status-with-issues { background-color: #fef3c7; color: #92400e; }
+
+        .section-card-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+
+        .section-card-stat {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .section-card-stat-label {
+            color: #64748b;
+        }
+
+        .section-card-stat-value {
+            font-weight: 600;
+        }
+
+        .section-card-progress {
+            height: 6px;
+            background-color: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .section-card-progress-fill {
+            height: 100%;
+            background-color: var(--success-color);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        /* ========== РЕЖИМ ПРОВЕРКИ НА ВЕСЬ ЭКРАН ========== */
+        .inspection-mode {
+            height: 100vh;
+            width: 100vw;
+            display: none;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: white;
+            z-index: 1000;
+        }
+
+        .inspection-header {
+            padding: 15px;
+            background-color: white;
+            border-bottom: 1px solid #e1e8ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .inspection-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .exit-inspection-btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .exit-inspection-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* Контейнер карусели */
+        .inspection-carousel-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .inspection-sections-carousel {
+            display: flex;
+            height: 100%;
+            transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+            will-change: transform;
+        }
+
+        .inspection-section-slide {
+            flex: 0 0 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .inspection-section-header {
+            padding: 12px 15px;
+            background-color: white;
+            border-bottom: 1px solid #e1e8ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .inspection-section-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .inspection-section-counter {
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .inspection-rack-container {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .inspection-rack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .inspection-tier-row {
+            display: flex;
+            margin-bottom: 4px;
+            width: 100%;
+        }
+
+        .inspection-tier-label {
+            width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .inspection-cells-container {
+            display: flex;
+            flex: 1;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .inspection-cell {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .inspection-cell:active {
+            transform: scale(0.95);
+        }
+
+        .inspection-cell-address {
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+        }
+
+        .inspection-cell-position {
+            font-size: 0.7rem;
+            color: #777;
+        }
+
+        /* Цвета состояний ячеек */
+        .inspection-cell-unchecked {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .inspection-cell-checked-empty {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .inspection-cell-discrepancy {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .inspection-cell-problem {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .inspection-cell-skipped {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* Выделение зон */
+        .inspection-tier-picking {
+            background-color: rgba(231, 76, 60, 0.05);
+        }
+
+        .inspection-tier-upper {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .inspection-tier-label.picking {
+            color: var(--danger-color);
+        }
+
+        .inspection-tier-label.upper {
+            color: var(--secondary-color);
+        }
+
+        /* Индикаторы свайпа */
+        .swipe-indicators {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .swipe-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+        }
+
+        .swipe-indicator.active {
+            background-color: var(--secondary-color);
+            transform: scale(1.3);
+        }
+
+        .swipe-hint {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--secondary-color);
+            font-size: 0.8rem;
+            font-weight: 600;
+            opacity: 0;
+            animation: fadeInOut 3s ease-in-out 1s 3;
+        }
+
+        .swipe-hint.hidden {
+            display: none;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Навигационные стрелки (только для десктопа) */
+        .carousel-nav {
+            display: none;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(52, 152, 219, 0.9);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 10;
+            transition: var(--transition);
+        }
+
+        .carousel-nav:hover {
+            background-color: rgba(52, 152, 219, 1);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .carousel-nav.prev {
+            left: 15px;
+        }
+
+        .carousel-nav.next {
+            right: 15px;
+        }
+
+        /* Модальное окно */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-title {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .modal-address {
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+            font-size: 1rem;
+            text-align: center;
+            padding: 10px;
+            background-color: #f8fafc;
+            border-radius: var(--border-radius);
+        }
+
+        .modal-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-option {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .modal-option:hover {
+            transform: translateX(3px);
+        }
+
+        .modal-option.empty {
+            border-color: var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        .modal-option.occupied {
+            border-color: var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .modal-option.problem {
+            border-color: var(--info-color);
+            color: var(--info-color);
+        }
+
+        .modal-option.skip {
+            border-color: #95a5a6;
+            color: #95a5a6;
+        }
+
+        .option-icon {
+            margin-right: 8px;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .modal-cancel {
+            background-color: #95a5a6;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Уведомление */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            color: white;
+            font-weight: 600;
+            z-index: 3000;
+            transform: translateX(150%);
+            transition: transform 0.5s ease;
+            max-width: 300px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background-color: var(--success-color);
+        }
+
+        .notification.warning {
+            background-color: var(--warning-color);
+        }
+
+        .notification.info {
+            background-color: var(--info-color);
+        }
+
+        .notification.error {
+            background-color: var(--danger-color);
+        }
+
+        /* Модальное окно импорта */
+        .import-modal {
+            max-width: 500px;
+        }
+
+        .import-content {
+            margin: 20px 0;
+        }
+
+        .import-dropzone {
+            border: 2px dashed #3498db;
+            border-radius: var(--border-radius);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 20px;
+        }
+
+        .import-dropzone:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .import-dropzone.dragover {
+            border-color: var(--success-color);
+            background-color: rgba(39, 174, 96, 0.1);
+        }
+
+        .import-dropzone-icon {
+            font-size: 3rem;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .import-dropzone-text {
+            font-size: 1rem;
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+
+        .import-dropzone-hint {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        .import-file-input {
+            display: none;
+        }
+
+        .import-file-name {
+            padding: 10px;
+            background-color: #f8fafc;
+            border-radius: var(--border-radius);
+            margin: 10px 0;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .import-file-name.show {
+            display: flex;
+        }
+
+        .import-progress {
+            width: 100%;
+            height: 10px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .import-progress.show {
+            display: block;
+        }
+
+        .import-progress-bar {
+            height: 100%;
+            background-color: var(--success-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .modal-buttons-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .modal-btn.primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .modal-btn.success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        /* Статус импорта */
+        .import-status {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8fafc;
+            border-radius: var(--border-radius);
+            display: none;
+        }
+
+        .import-status.show {
+            display: block;
+        }
+
+        .import-status-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .import-status-list {
+            list-style: none;
+        }
+
+        .import-status-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .import-status-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Адаптивность */
+        @media (min-width: 768px) {
+            .carousel-nav {
+                display: block;
+            }
+            
+            .inspection-cell {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .inspection-rack {
+                max-width: 600px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .inspection-cell {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .inspection-cell-address {
+                font-size: 0.7rem;
+            }
+            
+            .inspection-tier-label {
+                width: 40px;
+                font-size: 0.8rem;
+            }
+            
+            .control-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .global-stats {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .stat-item {
+                min-width: 80px;
+                padding: 6px 8px;
+            }
+            
+            .sections-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-buttons {
+                flex-direction: column;
+            }
+            
+            .control-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- РЕЖИМ ОБЩЕГО ОБЗОРА -->
+    <div class="overview-mode" id="overview-mode">
+        <!-- Панель управления -->
+        <div class="control-panel">
+            <div class="control-header">
+                <h1 class="app-title">📦 Проверка складских ячеек</h1>
+                <div class="operator-info">
+                    <input type="text" id="operator-name" class="operator-name" placeholder="Имя оператора" maxlength="50">
+                </div>
+            </div>
+            <div class="control-content">
+                <div class="alley-selector">
+                    <span class="alley-label">Аллея:</span>
+                    <select id="alley-select" class="alley-dropdown">
+                        <!-- Заполнится через JS -->
+                    </select>
+                </div>
+                <div class="global-stats">
+                    <div class="stat-item total-stat">
+                        <span class="stat-label">Всего</span>
+                        <span class="stat-value" id="total-cells">0</span>
+                    </div>
+                    <div class="stat-item checked-stat">
+                        <span class="stat-label">Проверено</span>
+                        <span class="stat-value" id="checked-cells">0</span>
+                    </div>
+                    <div class="stat-item discrepancy-stat">
+                        <span class="stat-label">Расхождения</span>
+                        <span class="stat-value" id="discrepancy-cells">0</span>
+                    </div>
+                    <div class="stat-item problem-stat">
+                        <span class="stat-label">Проблемы</span>
+                        <span class="stat-value" id="problem-cells">0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="control-buttons">
+                <button class="control-btn start-inspection-btn" id="start-inspection-btn">
+                    ▶ Начать проверку
+                </button>
+                <button class="control-btn import-btn" id="import-btn">
+                    📁 Загрузить XLS
+                </button>
+                <button class="control-btn export-btn" id="export-btn">
+                    💾 Экспорт CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- Обзор секций -->
+        <div class="sections-overview">
+            <h2 class="overview-title" id="overview-alley-title">Аллея A01 - Секции</h2>
+            <div class="sections-grid" id="sections-grid">
+                <!-- Карточки секций будут добавлены через JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- РЕЖИМ ПРОВЕРКИ НА ВЕСЬ ЭКРАН -->
+    <div class="inspection-mode" id="inspection-mode">
+        <!-- Заголовок проверки -->
+        <div class="inspection-header">
+            <div class="inspection-title" id="inspection-alley-title">Аллея A01 - Проверка</div>
+            <button class="exit-inspection-btn" id="exit-inspection-btn">
+                ← Завершить проверку
+            </button>
+        </div>
+
+        <!-- Карусель секций -->
+        <div class="inspection-carousel-container" id="carousel-container">
+            <!-- Карусель -->
+            <div class="inspection-sections-carousel" id="sections-carousel">
+                <!-- Секции будут добавлены через JS -->
+            </div>
+
+            <!-- Навигационные стрелки (для десктопа) -->
+            <button class="carousel-nav prev" id="carousel-prev">‹</button>
+            <button class="carousel-nav next" id="carousel-next">›</button>
+
+            <!-- Индикаторы свайпа -->
+            <div class="swipe-indicators" id="swipe-indicators">
+                <!-- Индикаторы будут добавлены через JS -->
+            </div>
+
+            <!-- Подсказка для свайпа -->
+            <div class="swipe-hint" id="swipe-hint">Свайпните влево или вправо для навигации</div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для выбора состояния ячейки -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <h3 class="modal-title">Состояние ячейки</h3>
+            <div class="modal-address" id="modal-address">A01-01-01-A</div>
+            <div class="modal-options">
+                <div class="modal-option empty" data-status="checked-empty">
+                    <span class="option-icon">✓</span>
+                    <span>Фактически пустая</span>
+                </div>
+                <div class="modal-option occupied" data-status="discrepancy">
+                    <span class="option-icon">⚠</span>
+                    <span>Фактически занята</span>
+                </div>
+                <div class="modal-option problem" data-status="problem">
+                    <span class="option-icon">!</span>
+                    <span>Другая проблема</span>
+                </div>
+                <div class="modal-option skip" data-status="skipped">
+                    <span class="option-icon">→</span>
+                    <span>Пропустить</span>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" id="modal-cancel">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно импорта XLS -->
+    <div class="modal-overlay" id="import-modal-overlay">
+        <div class="modal import-modal">
+            <h3 class="modal-title">Загрузка данных из XLS файла</h3>
+            <div class="import-content">
+                <div class="import-dropzone" id="import-dropzone">
+                    <div class="import-dropzone-icon">📁</div>
+                    <div class="import-dropzone-text">Перетащите XLS/XLSX файл сюда</div>
+                    <div class="import-dropzone-hint">или нажмите для выбора файла</div>
+                    <input type="file" id="xls-file-input" class="import-file-input" accept=".xls,.xlsx,.csv">
+                </div>
+                
+                <div class="import-file-name" id="import-file-name">
+                    <span id="selected-file-name">Файл не выбран</span>
+                    <button class="modal-btn secondary" id="clear-file-btn">✕</button>
+                </div>
+                
+                <div class="import-progress" id="import-progress">
+                    <div class="import-progress-bar" id="import-progress-bar"></div>
+                </div>
+                
+                <div class="import-status" id="import-status">
+                    <div class="import-status-title">Результаты импорта:</div>
+                    <ul class="import-status-list" id="import-status-list">
+                        <!-- Статус будет добавляться динамически -->
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-buttons-row">
+                <button class="modal-btn secondary" id="import-cancel-btn">Отмена</button>
+                <button class="modal-btn primary" id="import-start-btn" disabled>Загрузить данные</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомление -->
+    <div class="notification" id="notification"></div>
+
+    <!-- Библиотека SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.mini.min.js"></script>
+
+    <script>
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ==========
+        let currentAlley = 'A01';
+        let currentSectionIndex = 0;
+        let warehousesData = {};
+        let selectedCell = null;
+        let selectedCellElement = null;
+        let isMobile = window.innerWidth < 768;
+        let isInspecting = false;
+        
+        // Данные из XLS файла
+        let wmsData = {
+            lastImportDate: null,
+            fileInfo: null,
+            cellsData: {} // ключ: адрес ячейки (A01-01-01-A), значение: статус из WMS
+        };
+
+        // Константы
+        const tierOrder = ['15', '14', '13', '12', '11', '10', '03', '02', '01'];
+        const pickingTiers = ['02', '03'];
+        const upperTiers = ['10', '11', '12', '13', '14', '15'];
+        const positions = ['A', 'B', 'C'];
+        const totalSections = 15;
+
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Инициализация системы...');
+            initAlleysDropdown();
+            generateWarehouseData();
+            setupEventListeners();
+            updateOverviewDisplay();
+            
+            // Загружаем сохраненные данные
+            loadSavedData();
+            
+            console.log('Система готова к работе');
+        });
+
+        // Инициализация выпадающего списка аллей
+        function initAlleysDropdown() {
+            const alleySelect = document.getElementById('alley-select');
+            alleySelect.innerHTML = '';
+            
+            for (let i = 1; i <= 14; i++) {
+                const alley = `A${i.toString().padStart(2, '0')}`;
+                const option = document.createElement('option');
+                option.value = alley;
+                option.textContent = alley;
+                alleySelect.appendChild(option);
+            }
+            
+            alleySelect.value = currentAlley;
+        }
+
+        // Генерация тестовых данных
+        function generateWarehouseData() {
+            warehousesData = {};
+            
+            for (let alleyNum = 1; alleyNum <= 14; alleyNum++) {
+                const alley = `A${alleyNum.toString().padStart(2, '0')}`;
+                warehousesData[alley] = {};
+                
+                for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                    const section = sectionNum.toString().padStart(2, '0');
+                    warehousesData[alley][section] = {
+                        cells: [],
+                        checkedTime: null,
+                        operator: ''
+                    };
+                    
+                    for (const tier of tierOrder) {
+                        for (const position of positions) {
+                            const cell = {
+                                id: `${alley}-${section}-${tier}-${position}`,
+                                alley: alley,
+                                section: section,
+                                tier: tier,
+                                position: position,
+                                systemStatus: 'empty',
+                                actualStatus: null,
+                                checked: false,
+                                checkTime: null,
+                                comment: '',
+                                operator: '',
+                                discrepancy: false
+                            };
+                            
+                            warehousesData[alley][section].cells.push(cell);
+                        }
+                    }
+                }
+            }
+            console.log('Данные сгенерированы:', warehousesData[currentAlley]);
+        }
+
+        // ========== ЗАГРУЗКА И СОХРАНЕНИЕ ДАННЫХ ==========
+        function loadSavedData() {
+            // Загружаем данные проверок
+            const savedData = localStorage.getItem('warehouseInspectionData');
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    
+                    // Объединяем сохраненные данные с текущими
+                    for (const alley in parsedData) {
+                        if (warehousesData[alley]) {
+                            for (const section in parsedData[alley]) {
+                                if (warehousesData[alley][section]) {
+                                    // Обновляем ячейки
+                                    parsedData[alley][section].cells.forEach(savedCell => {
+                                        const existingCell = warehousesData[alley][section].cells.find(
+                                            cell => cell.id === savedCell.id
+                                        );
+                                        if (existingCell) {
+                                            Object.assign(existingCell, savedCell);
+                                        }
+                                    });
+                                    
+                                    // Обновляем метаданные секции
+                                    warehousesData[alley][section].checkedTime = parsedData[alley][section].checkedTime;
+                                    warehousesData[alley][section].operator = parsedData[alley][section].operator;
+                                }
+                            }
+                        }
+                    }
+                    console.log('Данные проверок загружены из localStorage');
+                } catch (error) {
+                    console.error('Ошибка загрузки данных:', error);
+                }
+            }
+            
+            // Загружаем данные WMS
+            const savedWMSData = localStorage.getItem('warehouseWMSData');
+            if (savedWMSData) {
+                try {
+                    wmsData = JSON.parse(savedWMSData);
+                    applyWMSDataToWarehouse();
+                    console.log('Данные WMS загружены из localStorage');
+                } catch (error) {
+                    console.error('Ошибка загрузки данных WMS:', error);
+                }
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('warehouseInspectionData', JSON.stringify(warehousesData));
+                localStorage.setItem('warehouseWMSData', JSON.stringify(wmsData));
+                console.log('Данные сохранены в localStorage');
+            } catch (error) {
+                console.error('Ошибка сохранения данных:', error);
+                showNotification('Ошибка сохранения данных', 'error');
+            }
+        }
+
+        // ========== ИМПОРТ ДАННЫХ ИЗ XLS ==========
+        function openImportModal() {
+            console.log('Открытие модального окна импорта');
+            document.getElementById('import-modal-overlay').classList.add('show');
+            resetImportForm();
+        }
+
+        function closeImportModal() {
+            document.getElementById('import-modal-overlay').classList.remove('show');
+        }
+
+        function resetImportForm() {
+            document.getElementById('selected-file-name').textContent = 'Файл не выбран';
+            document.getElementById('import-file-name').classList.remove('show');
+            document.getElementById('import-progress').classList.remove('show');
+            document.getElementById('import-progress-bar').style.width = '0%';
+            document.getElementById('import-status').classList.remove('show');
+            document.getElementById('import-status-list').innerHTML = '';
+            document.getElementById('import-start-btn').disabled = true;
+            document.getElementById('xls-file-input').value = '';
+        }
+
+        // Обработка выбора файла
+        function handleFileSelect(file) {
+            if (!file) return;
+            
+            const fileName = file.name;
+            const fileSize = (file.size / 1024 / 1024).toFixed(2); // Размер в MB
+            
+            console.log('Выбран файл:', fileName, 'Размер:', fileSize, 'MB');
+            
+            // Проверка расширения файла
+            const validExtensions = ['.xls', '.xlsx', '.csv'];
+            const fileExtension = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
+            
+            if (!validExtensions.includes(fileExtension)) {
+                showNotification('Неверный формат файла. Используйте .xls, .xlsx или .csv', 'error');
+                return;
+            }
+            
+            // Проверка размера файла (макс. 10 MB)
+            if (file.size > 10 * 1024 * 1024) {
+                showNotification('Файл слишком большой. Максимальный размер: 10 MB', 'error');
+                return;
+            }
+            
+            // Отображаем имя файла
+            document.getElementById('selected-file-name').textContent = `${fileName} (${fileSize} MB)`;
+            document.getElementById('import-file-name').classList.add('show');
+            document.getElementById('import-start-btn').disabled = false;
+            
+            // Сохраняем файл для последующей обработки
+            window.selectedFile = file;
+        }
+
+        // Парсинг XLS файла
+        async function parseXLSFile(file) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            
+                            // Получаем первый лист
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+                            
+                            // Преобразуем в JSON
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            
+                            console.log('Файл успешно прочитан, строк:', jsonData.length);
+                            resolve(jsonData);
+                        } catch (error) {
+                            reject(new Error('Ошибка парсинга файла: ' + error.message));
+                        }
+                    };
+                    
+                    reader.onerror = function() {
+                        reject(new Error('Ошибка чтения файла'));
+                    };
+                    
+                    reader.readAsArrayBuffer(file);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // Преобразование данных из XLS в формат системы
+        function processXLSData(xlsData) {
+            console.log('Обработка данных XLS...');
+            
+            const processedData = {};
+            let totalRows = 0;
+            let validRows = 0;
+            let errors = [];
+            
+            // Определяем индексы колонок по заголовкам
+            let headerRow = null;
+            let cellNameIndex = -1;
+            let statusIndex = -1;
+            let alleyIndex = -1;
+            
+            // Ищем заголовки
+            for (let i = 0; i < Math.min(5, xlsData.length); i++) {
+                const row = xlsData[i];
+                if (Array.isArray(row)) {
+                    for (let j = 0; j < row.length; j++) {
+                        const cellValue = String(row[j] || '').toLowerCase();
+                        
+                        if (cellValue.includes('название') && cellValue.includes('ячейки')) {
+                            cellNameIndex = j;
+                        }
+                        if (cellValue.includes('статус')) {
+                            statusIndex = j;
+                        }
+                        if (cellValue.includes('алле') || cellValue.includes('номер аллеи')) {
+                            alleyIndex = j;
+                        }
+                    }
+                    
+                    // Если нашли все необходимые колонки
+                    if (cellNameIndex !== -1 && statusIndex !== -1) {
+                        headerRow = i;
+                        break;
+                    }
+                }
+            }
+            
+            if (cellNameIndex === -1 || statusIndex === -1) {
+                throw new Error('Не найдены необходимые колонки в файле. Требуются колонки: "Название Ячейки" и "Статус"');
+            }
+            
+            console.log('Найдены колонки:', { cellNameIndex, statusIndex, alleyIndex, headerRow });
+            
+            // Обрабатываем строки данных
+            for (let i = (headerRow || 0) + 1; i < xlsData.length; i++) {
+                const row = xlsData[i];
+                if (!Array.isArray(row) || row.length === 0) continue;
+                
+                totalRows++;
+                
+                try {
+                    const cellName = String(row[cellNameIndex] || '').trim();
+                    const status = String(row[statusIndex] || '').trim();
+                    const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
+                    
+                    if (!cellName || !status) {
+                        errors.push(`Строка ${i+1}: пропущены обязательные данные`);
+                        continue;
+                    }
+                    
+                    // Преобразуем название ячейки в формат системы
+                    const parsedCell = parseCellName(cellName, alley);
+                    
+                    if (!parsedCell) {
+                        errors.push(`Строка ${i+1}: неверный формат названия ячейки: ${cellName}`);
+                        continue;
+                    }
+                    
+                    const cellId = `${parsedCell.alley}-${parsedCell.section}-${parsedCell.tier}-${parsedCell.position}`;
+                    
+                    // Преобразуем статус
+                    const systemStatus = convertStatus(status);
+                    
+                    processedData[cellId] = {
+                        cellId: cellId,
+                        originalName: cellName,
+                        systemStatus: systemStatus,
+                        parsedData: parsedCell,
+                        rawData: {
+                            status: status,
+                            alley: alley
+                        }
+                    };
+                    
+                    validRows++;
+                    
+                } catch (error) {
+                    errors.push(`Строка ${i+1}: ${error.message}`);
+                }
+            }
+            
+            console.log(`Обработано строк: ${validRows}/${totalRows}, ошибок: ${errors.length}`);
+            
+            return {
+                processedData: processedData,
+                stats: {
+                    totalRows: totalRows,
+                    validRows: validRows,
+                    errorRows: errors.length
+                },
+                errors: errors
+            };
+        }
+
+        // Парсинг названия ячейки
+        function parseCellName(cellName, alleyFromData) {
+            // Пример формата: "OS A5-15-11-C"
+            // Или: "OS A 005 011 045"
+            
+            const cleanedName = cellName.replace(/\s+/g, ' ').trim();
+            
+            // Паттерн 1: OS A5-15-11-C
+            const pattern1 = /OS\s+([A-Z])(\d{1,2})-(\d{1,2})-(\d{1,2})-([A-C])/i;
+            // Паттерн 2: OS A 005 011 045
+            const pattern2 = /OS\s+([A-Z])\s+(\d{3})\s+(\d{3})\s+(\d{3})/i;
+            
+            let alley = '';
+            let section = '';
+            let tier = '';
+            let position = '';
+            
+            const match1 = cleanedName.match(pattern1);
+            const match2 = cleanedName.match(pattern2);
+            
+            if (match1) {
+                alley = match1[1].toUpperCase() + match1[2].padStart(2, '0'); // A5 → A05
+                section = match1[3].padStart(2, '0'); // 15 → 15
+                tier = match1[4].padStart(2, '0'); // 11 → 11
+                position = match1[5].toUpperCase(); // C → C
+            } else if (match2) {
+                alley = match2[1].toUpperCase() + match2[2].padStart(2, '0').slice(-2); // 005 → 05
+                section = match2[3].padStart(2, '0'); // 011 → 11
+                tier = match2[4].padStart(2, '0'); // 045 → 45
+                // Для формата с глубиной определяем позицию по глубине
+                const depth = parseInt(match2[4]);
+                position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
+            } else {
+                // Если не удалось распарсить по шаблонам, используем аллею из данных
+                if (alleyFromData) {
+                    const alleyMatch = alleyFromData.match(/([A-Z])(\d{1,2})/i);
+                    if (alleyMatch) {
+                        alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
+                        
+                        // Пытаемся извлечить данные из названия другими способами
+                        const numbers = cellName.match(/\d+/g);
+                        if (numbers && numbers.length >= 3) {
+                            section = numbers[0].padStart(2, '0').slice(-2);
+                            tier = numbers[1].padStart(2, '0').slice(-2);
+                            position = numbers[2] === '49' ? 'A' : numbers[2] === '50' ? 'B' : 'C';
+                        }
+                    }
+                }
+                
+                if (!alley) {
+                    return null;
+                }
+            }
+            
+            // Валидация данных
+            if (!alley.match(/^A\d{2}$/) || 
+                !section.match(/^\d{2}$/) || 
+                !tier.match(/^\d{2}$/) || 
+                !['A', 'B', 'C'].includes(position)) {
+                return null;
+            }
+            
+            return {
+                alley: alley,
+                section: section,
+                tier: tier,
+                position: position
+            };
+        }
+
+        // Преобразование статуса
+        function convertStatus(status) {
+            const statusLower = status.toLowerCase();
+            
+            if (statusLower.includes('свобод') || statusLower.includes('пуст') || statusLower === 'empty') {
+                return 'empty';
+            } else if (statusLower.includes('занят') || statusLower.includes('заполн') || statusLower === 'occupied') {
+                return 'occupied';
+            } else {
+                return 'unknown';
+            }
+        }
+
+        // Применение данных WMS к warehousesData
+        function applyWMSDataToWarehouse() {
+            console.log('Применение данных WMS...');
+            
+            let updatedCells = 0;
+            let notFoundCells = 0;
+            
+            for (const cellId in wmsData.cellsData) {
+                const wmsCell = wmsData.cellsData[cellId];
+                const parts = cellId.split('-');
+                
+                if (parts.length !== 4) continue;
+                
+                const [alley, section, tier, position] = parts;
+                
+                if (warehousesData[alley] && warehousesData[alley][section]) {
+                    const cell = warehousesData[alley][section].cells.find(
+                        c => c.tier === tier && c.position === position
+                    );
+                    
+                    if (cell) {
+                        cell.systemStatus = wmsCell.systemStatus;
+                        updatedCells++;
+                    } else {
+                        notFoundCells++;
+                    }
+                } else {
+                    notFoundCells++;
+                }
+            }
+            
+            console.log(`Обновлено ячеек: ${updatedCells}, не найдено: ${notFoundCells}`);
+            return { updatedCells, notFoundCells };
+        }
+
+        // Основная функция импорта
+        async function startImport() {
+            const file = window.selectedFile;
+            if (!file) {
+                showNotification('Файл не выбран', 'error');
+                return;
+            }
+            
+            const progressBar = document.getElementById('import-progress-bar');
+            const progressContainer = document.getElementById('import-progress');
+            const statusContainer = document.getElementById('import-status');
+            const statusList = document.getElementById('import-status-list');
+            
+            // Сбрасываем UI
+            progressContainer.classList.add('show');
+            statusContainer.classList.remove('show');
+            statusList.innerHTML = '';
+            progressBar.style.width = '0%';
+            
+            try {
+                // 1. Парсинг файла
+                progressBar.style.width = '25%';
+                showNotification('Чтение файла...', 'info');
+                
+                const xlsData = await parseXLSFile(file);
+                progressBar.style.width = '50%';
+                
+                // 2. Обработка данных
+                showNotification('Обработка данных...', 'info');
+                const processed = processXLSData(xlsData);
+                progressBar.style.width = '75%';
+                
+                // 3. Сохранение данных WMS
+                wmsData = {
+                    lastImportDate: new Date().toISOString(),
+                    fileInfo: {
+                        name: file.name,
+                        size: file.size,
+                        lastModified: file.lastModified
+                    },
+                    cellsData: processed.processedData
+                };
+                
+                // 4. Применение данных к warehousesData
+                const applyResult = applyWMSDataToWarehouse();
+                progressBar.style.width = '100%';
+                
+                // 5. Сохранение данных
+                saveData();
+                
+                // Обновляем отображение
+                if (isInspecting) {
+                    updateInspectionCarousel();
+                } else {
+                    updateOverviewDisplay();
+                }
+                
+                // Показываем результаты
+                statusContainer.classList.add('show');
+                
+                const successItem = document.createElement('li');
+                successItem.className = 'import-status-item';
+                successItem.innerHTML = `<span>Успешно обработано строк:</span><span>${processed.stats.validRows}</span>`;
+                statusList.appendChild(successItem);
+                
+                const errorItem = document.createElement('li');
+                errorItem.className = 'import-status-item';
+                errorItem.innerHTML = `<span>Строк с ошибками:</span><span>${processed.stats.errorRows}</span>`;
+                statusList.appendChild(errorItem);
+                
+                const updatedItem = document.createElement('li');
+                updatedItem.className = 'import-status-item';
+                updatedItem.innerHTML = `<span>Обновлено ячеек в системе:</span><span>${applyResult.updatedCells}</span>`;
+                statusList.appendChild(updatedItem);
+                
+                const dateItem = document.createElement('li');
+                dateItem.className = 'import-status-item';
+                const importDate = new Date(wmsData.lastImportDate).toLocaleString();
+                dateItem.innerHTML = `<span>Дата импорта:</span><span>${importDate}</span>`;
+                statusList.appendChild(dateItem);
+                
+                // Показываем ошибки, если есть
+                if (processed.errors.length > 0) {
+                    const errorsTitle = document.createElement('div');
+                    errorsTitle.className = 'import-status-title';
+                    errorsTitle.textContent = 'Ошибки обработки:';
+                    errorsTitle.style.marginTop = '10px';
+                    errorsTitle.style.color = '#e74c3c';
+                    statusContainer.appendChild(errorsTitle);
+                    
+                    const errorsList = document.createElement('ul');
+                    errorsList.className = 'import-status-list';
+                    
+                    processed.errors.slice(0, 5).forEach(error => {
+                        const errorItem = document.createElement('li');
+                        errorItem.className = 'import-status-item';
+                        errorItem.style.color = '#e74c3c';
+                        errorItem.textContent = error;
+                        errorsList.appendChild(errorItem);
+                    });
+                    
+                    if (processed.errors.length > 5) {
+                        const moreItem = document.createElement('li');
+                        moreItem.className = 'import-status-item';
+                        moreItem.style.color = '#7f8c8d';
+                        moreItem.textContent = `... и ещё ${processed.errors.length - 5} ошибок`;
+                        errorsList.appendChild(moreItem);
+                    }
+                    
+                    statusContainer.appendChild(errorsList);
+                }
+                
+                showNotification(`Данные успешно импортированы! Обновлено ${applyResult.updatedCells} ячеек`, 'success');
+                
+            } catch (error) {
+                console.error('Ошибка импорта:', error);
+                progressBar.style.backgroundColor = '#e74c3c';
+                
+                statusContainer.classList.add('show');
+                const errorItem = document.createElement('li');
+                errorItem.className = 'import-status-item';
+                errorItem.style.color = '#e74c3c';
+                errorItem.textContent = `Ошибка: ${error.message}`;
+                statusList.appendChild(errorItem);
+                
+                showNotification(`Ошибка импорта: ${error.message}`, 'error');
+            }
+        }
+
+        // ========== ЭКСПОРТ ДАННЫХ В CSV ==========
+        function exportToCSV() {
+            console.log('Экспорт данных в CSV...');
+            
+            if (!warehousesData[currentAlley]) {
+                showNotification('Нет данных для экспорта', 'warning');
+                return;
+            }
+            
+            const operator = document.getElementById('operator-name').value || 'Не указан';
+            const exportDate = new Date().toISOString();
+            
+            // Подготавливаем данные для экспорта
+            let csvContent = 'Адрес ячейки;Статус в системе;Фактический статус;Расхождение;Дата проверки;Оператор;Комментарий\n';
+            
+            let exportedRows = 0;
+            
+            for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                const section = sectionNum.toString().padStart(2, '0');
+                const sectionData = warehousesData[currentAlley][section];
+                
+                if (!sectionData) continue;
+                
+                sectionData.cells.forEach(cell => {
+                    if (cell.checked && cell.actualStatus !== 'skipped') {
+                        const cellId = cell.id;
+                        const systemStatus = cell.systemStatus;
+                        const actualStatus = getActualStatusText(cell.actualStatus);
+                        const discrepancy = cell.systemStatus === 'empty' && cell.actualStatus === 'discrepancy' ||
+                                          cell.systemStatus === 'occupied' && cell.actualStatus === 'checked-empty' ? 'Да' : 'Нет';
+                        const checkTime = cell.checkTime ? new Date(cell.checkTime).toLocaleString() : '';
+                        const cellOperator = cell.operator || operator;
+                        const comment = cell.comment || '';
+                        
+                        csvContent += `"${cellId}";"${systemStatus}";"${actualStatus}";"${discrepancy}";"${checkTime}";"${cellOperator}";"${comment}"\n`;
+                        exportedRows++;
+                    }
+                });
+            }
+            
+            if (exportedRows === 0) {
+                showNotification('Нет проверенных ячеек для экспорта', 'warning');
+                return;
+            }
+            
+            // Создаем Blob и скачиваем файл
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const fileName = `отчет_${currentAlley}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_${new Date().getHours()}${new Date().getMinutes()}.csv`;
+            
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.style.display = 'none';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification(`Экспортировано ${exportedRows} строк в файл ${fileName}`, 'success');
+        }
+
+        function getActualStatusText(status) {
+            switch(status) {
+                case 'checked-empty': return 'Пустая';
+                case 'discrepancy': return 'Занята';
+                case 'problem': return 'Проблема';
+                default: return 'Не проверена';
+            }
+        }
+
+        // ========== ОБНОВЛЕНИЕ РЕЖИМА ОБЗОРА ==========
+        function updateOverviewDisplay() {
+            updateOverviewAlleyTitle();
+            updateGlobalStats();
+            updateSectionsGrid();
+        }
+
+        function updateOverviewAlleyTitle() {
+            document.getElementById('overview-alley-title').textContent = `Аллея ${currentAlley} - Секции`;
+        }
+
+        function updateGlobalStats() {
+            if (!warehousesData[currentAlley]) return;
+            
+            let total = 0;
+            let checked = 0;
+            let discrepancies = 0;
+            let problems = 0;
+            
+            for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                const section = sectionNum.toString().padStart(2, '0');
+                if (warehousesData[currentAlley][section]) {
+                    const cells = warehousesData[currentAlley][section].cells;
+                    total += cells.length;
+                    checked += cells.filter(cell => cell.checked && cell.actualStatus !== 'skipped').length;
+                    discrepancies += cells.filter(cell => cell.actualStatus === 'discrepancy').length;
+                    problems += cells.filter(cell => cell.actualStatus === 'problem').length;
+                }
+            }
+            
+            document.getElementById('total-cells').textContent = total;
+            document.getElementById('checked-cells').textContent = checked;
+            document.getElementById('discrepancy-cells').textContent = discrepancies;
+            document.getElementById('problem-cells').textContent = problems;
+        }
+
+        function updateSectionsGrid() {
+            const sectionsGrid = document.getElementById('sections-grid');
+            if (!sectionsGrid) return;
+            
+            sectionsGrid.innerHTML = '';
+            
+            if (!warehousesData[currentAlley]) {
+                sectionsGrid.innerHTML = '<div class="section-card">Нет данных</div>';
+                return;
+            }
+            
+            for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                const section = sectionNum.toString().padStart(2, '0');
+                const sectionData = warehousesData[currentAlley][section];
+                if (!sectionData) continue;
+                
+                const cells = sectionData.cells;
+                const total = cells.length;
+                const checked = cells.filter(cell => cell.checked && cell.actualStatus !== 'skipped').length;
+                const discrepancies = cells.filter(cell => cell.actualStatus === 'discrepancy').length;
+                const problems = cells.filter(cell => cell.actualStatus === 'problem').length;
+                const progress = total > 0 ? Math.round((checked / total) * 100) : 0;
+                
+                // Определяем статус секции
+                let statusClass = 'status-not-started';
+                let statusText = 'Не начата';
+                
+                if (progress === 100) {
+                    statusClass = 'status-completed';
+                    statusText = 'Завершена';
+                } else if (progress > 0 && progress < 100) {
+                    statusClass = 'status-in-progress';
+                    statusText = 'В процессе';
+                }
+                
+                if (discrepancies > 0 || problems > 0) {
+                    statusClass = 'status-with-issues';
+                    statusText = 'Есть проблемы';
+                }
+                
+                const sectionCard = document.createElement('div');
+                sectionCard.className = `section-card`;
+                sectionCard.dataset.sectionIndex = sectionNum - 1;
+                
+                sectionCard.innerHTML = `
+                    <div class="section-card-header">
+                        <div class="section-card-title">Секция ${section}</div>
+                        <div class="section-card-status ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="section-card-stats">
+                        <div class="section-card-stat">
+                            <span class="section-card-stat-label">Всего:</span>
+                            <span class="section-card-stat-value">${total}</span>
+                        </div>
+                        <div class="section-card-stat">
+                            <span class="section-card-stat-label">Проверено:</span>
+                            <span class="section-card-stat-value">${checked}</span>
+                        </div>
+                        <div class="section-card-stat">
+                            <span class="section-card-stat-label">Расхождения:</span>
+                            <span class="section-card-stat-value">${discrepancies}</span>
+                        </div>
+                        <div class="section-card-stat">
+                            <span class="section-card-stat-label">Проблемы:</span>
+                            <span class="section-card-stat-value">${problems}</span>
+                        </div>
+                    </div>
+                    <div class="section-card-progress">
+                        <div class="section-card-progress-fill" style="width: ${progress}%"></div>
+                    </div>
+                `;
+                
+                // Карточка кликабельна - начинаем проверку с этой секции
+                sectionCard.addEventListener('click', () => {
+                    currentSectionIndex = sectionNum - 1;
+                    startInspection();
+                });
+                
+                sectionsGrid.appendChild(sectionCard);
+            }
+        }
+
+        // ========== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ==========
+        function startInspection() {
+            console.log('Начало проверки, секция:', currentSectionIndex);
+            isInspecting = true;
+            
+            // Переключаем режимы
+            document.getElementById('overview-mode').style.display = 'none';
+            document.getElementById('inspection-mode').style.display = 'flex';
+            
+            // Обновляем заголовок
+            document.getElementById('inspection-alley-title').textContent = `Аллея ${currentAlley} - Проверка`;
+            
+            // Инициализируем карусель проверки
+            updateInspectionCarousel();
+            
+            // Показываем уведомление
+            showNotification(`Начата проверка аллеи ${currentAlley}`, 'info');
+        }
+
+        function exitInspection() {
+            isInspecting = false;
+            
+            // Переключаем режимы
+            document.getElementById('inspection-mode').style.display = 'none';
+            document.getElementById('overview-mode').style.display = 'flex';
+            
+            // Сохраняем данные
+            saveData();
+            
+            // Обновляем обзор
+            updateOverviewDisplay();
+            
+            // Показываем уведомление
+            showNotification(`Проверка аллеи ${currentAlley} завершена`, 'info');
+        }
+
+        // ========== КАРУСЕЛЬ ПРОВЕРКИ ==========
+        function updateInspectionCarousel() {
+            const carousel = document.getElementById('sections-carousel');
+            const indicators = document.getElementById('swipe-indicators');
+            
+            if (!carousel || !indicators) return;
+            
+            carousel.innerHTML = '';
+            indicators.innerHTML = '';
+            
+            if (!warehousesData[currentAlley]) {
+                carousel.innerHTML = '<div class="inspection-section-slide"><div style="text-align: center; padding: 40px; color: #666;">Нет данных для отображения</div></div>';
+                return;
+            }
+            
+            // Создаем слайды для всех секций
+            for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                const section = sectionNum.toString().padStart(2, '0');
+                const slide = createInspectionSectionSlide(section, sectionNum - 1);
+                carousel.appendChild(slide);
+                
+                // Создаем индикатор
+                const indicator = document.createElement('div');
+                indicator.className = `swipe-indicator ${sectionNum - 1 === currentSectionIndex ? 'active' : ''}`;
+                indicator.dataset.index = sectionNum - 1;
+                indicator.addEventListener('click', () => goToSection(sectionNum - 1));
+                indicators.appendChild(indicator);
+            }
+            
+            // Устанавливаем позицию карусели
+            goToSection(currentSectionIndex);
+        }
+
+        function createInspectionSectionSlide(section, index) {
+            const sectionData = warehousesData[currentAlley][section];
+            if (!sectionData) {
+                return createEmptySlide(section, index);
+            }
+            
+            const cells = sectionData.cells;
+            
+            const slide = document.createElement('div');
+            slide.className = 'inspection-section-slide';
+            slide.dataset.sectionIndex = index;
+            slide.dataset.section = section;
+            
+            // Создаем строки для ярусов
+            const rackContainer = document.createElement('div');
+            rackContainer.className = 'inspection-rack';
+            
+            const cellsByTier = {};
+            tierOrder.forEach(tier => {
+                cellsByTier[tier] = cells.filter(cell => cell.tier === tier);
+            });
+            
+            tierOrder.forEach(tier => {
+                const tierCells = cellsByTier[tier];
+                if (tierCells.length === 0) return;
+                
+                const tierRow = document.createElement('div');
+                tierRow.className = 'inspection-tier-row';
+                
+                if (pickingTiers.includes(tier)) {
+                    tierRow.classList.add('inspection-tier-picking');
+                } else if (upperTiers.includes(tier)) {
+                    tierRow.classList.add('inspection-tier-upper');
+                }
+                
+                const tierLabel = document.createElement('div');
+                tierLabel.className = 'inspection-tier-label';
+                if (pickingTiers.includes(tier)) {
+                    tierLabel.classList.add('picking');
+                } else if (upperTiers.includes(tier)) {
+                    tierLabel.classList.add('upper');
+                }
+                tierLabel.textContent = tier;
+                tierRow.appendChild(tierLabel);
+                
+                const cellsContainer = document.createElement('div');
+                cellsContainer.className = 'inspection-cells-container';
+                
+                // Сортируем ячейки по позициям
+                tierCells.sort((a, b) => positions.indexOf(a.position) - positions.indexOf(b.position));
+                
+                tierCells.forEach(cell => {
+                    const cellElement = createCellElement(cell);
+                    cellsContainer.appendChild(cellElement);
+                });
+                
+                tierRow.appendChild(cellsContainer);
+                rackContainer.appendChild(tierRow);
+            });
+            
+            slide.innerHTML = `
+                <div class="inspection-section-header">
+                    <div class="inspection-section-name">Секция ${section}</div>
+                    <div class="inspection-section-counter">${index + 1}/${totalSections}</div>
+                </div>
+                <div class="inspection-rack-container">
+                </div>
+            `;
+            
+            // Вставляем rackContainer внутрь контейнера
+            const rackContainerWrapper = slide.querySelector('.inspection-rack-container');
+            if (rackContainerWrapper) {
+                rackContainerWrapper.appendChild(rackContainer);
+            }
+            
+            return slide;
+        }
+
+        function createCellElement(cell) {
+            const cellElement = document.createElement('div');
+            cellElement.className = 'inspection-cell';
+            
+            // Определяем класс состояния ячейки
+            let statusClass = 'inspection-cell-unchecked';
+            if (cell.checked) {
+                if (cell.actualStatus === 'checked-empty') {
+                    statusClass = 'inspection-cell-checked-empty';
+                } else if (cell.actualStatus === 'discrepancy') {
+                    statusClass = 'inspection-cell-discrepancy';
+                } else if (cell.actualStatus === 'problem') {
+                    statusClass = 'inspection-cell-problem';
+                } else if (cell.actualStatus === 'skipped') {
+                    statusClass = 'inspection-cell-skipped';
+                }
+            }
+            
+            cellElement.className = `inspection-cell ${statusClass}`;
+            if (cell.actualStatus === 'discrepancy' || cell.actualStatus === 'problem') {
+                cellElement.classList.add('pulse');
+            }
+            
+            // Добавляем индикатор статуса из WMS
+            if (cell.systemStatus === 'occupied') {
+                cellElement.style.borderLeft = '4px solid #e74c3c';
+            } else if (cell.systemStatus === 'empty') {
+                cellElement.style.borderLeft = '4px solid #2ecc71';
+            }
+            
+            cellElement.dataset.cellId = cell.id;
+            cellElement.dataset.alley = cell.alley;
+            cellElement.dataset.section = cell.section;
+            cellElement.dataset.tier = cell.tier;
+            cellElement.dataset.position = cell.position;
+            
+            const cellAddress = document.createElement('div');
+            cellAddress.className = 'inspection-cell-address';
+            cellAddress.textContent = cell.position;
+            
+            const cellPosition = document.createElement('div');
+            cellPosition.className = 'inspection-cell-position';
+            
+            // Добавляем иконку статуса из WMS
+            let statusIcon = '';
+            if (cell.systemStatus === 'occupied') {
+                statusIcon = '📦';
+            } else if (cell.systemStatus === 'empty') {
+                statusIcon = '⬜';
+            }
+            
+            cellPosition.textContent = `${statusIcon} ${cell.position}`;
+            
+            cellElement.appendChild(cellAddress);
+            cellElement.appendChild(cellPosition);
+            
+            // Обработчик клика/тапа
+            cellElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleCellClick(cell, cellElement);
+            });
+            
+            return cellElement;
+        }
+
+        function createEmptySlide(section, index) {
+            const slide = document.createElement('div');
+            slide.className = 'inspection-section-slide';
+            slide.dataset.sectionIndex = index;
+            
+            slide.innerHTML = `
+                <div class="inspection-section-header">
+                    <div class="inspection-section-name">Секция ${section}</div>
+                    <div class="inspection-section-counter">${index + 1}/${totalSections}</div>
+                </div>
+                <div class="inspection-rack-container">
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        Нет данных для секции ${section}
+                    </div>
+                </div>
+            `;
+            
+            return slide;
+        }
+
+        // ========== НАВИГАЦИЯ ПО СЕКЦИЯМ ==========
+        function goToSection(index) {
+            if (index < 0 || index >= totalSections) return;
+            
+            currentSectionIndex = index;
+            const carousel = document.getElementById('sections-carousel');
+            if (carousel) {
+                carousel.style.transform = `translateX(-${index * 100}%)`;
+            }
+            
+            // Обновляем активный индикатор
+            document.querySelectorAll('.swipe-indicator').forEach((ind, i) => {
+                ind.classList.toggle('active', i === index);
+            });
+        }
+
+        function nextSection() {
+            if (currentSectionIndex < totalSections - 1) {
+                goToSection(currentSectionIndex + 1);
+            }
+        }
+
+        function prevSection() {
+            if (currentSectionIndex > 0) {
+                goToSection(currentSectionIndex - 1);
+            }
+        }
+
+        // ========== ОБРАБОТКА КЛИКОВ ПО ЯЧЕЙКАМ ==========
+        function handleCellClick(cell, cellElement) {
+            console.log('Клик по ячейке:', cell.id);
+            selectedCell = cell;
+            selectedCellElement = cellElement;
+            openModal(cell);
+        }
+
+        // ========== МОДАЛЬНОЕ ОКНО ==========
+        function openModal(cell) {
+            console.log('Открытие модального окна для:', cell.id);
+            document.getElementById('modal-address').textContent = cell.id;
+            document.getElementById('modal-overlay').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('show');
+            selectedCell = null;
+            selectedCellElement = null;
+        }
+
+        function updateCellStatus(status) {
+            if (!selectedCell) {
+                console.error('Нет выбранной ячейки');
+                return;
+            }
+            
+            console.log('Обновление статуса ячейки:', selectedCell.id, 'статус:', status);
+            
+            // Обновляем данные ячейки в warehousesData
+            selectedCell.actualStatus = status;
+            selectedCell.checked = true;
+            selectedCell.checkTime = new Date().toISOString();
+            selectedCell.operator = document.getElementById('operator-name').value || 'Не указан';
+            
+            // Определяем расхождение
+            if ((selectedCell.systemStatus === 'empty' && status === 'discrepancy') ||
+                (selectedCell.systemStatus === 'occupied' && status === 'checked-empty')) {
+                selectedCell.discrepancy = true;
+            }
+            
+            // Обновляем визуальное отображение ячейки
+            if (selectedCellElement) {
+                // Удаляем все классы состояний
+                selectedCellElement.classList.remove(
+                    'inspection-cell-unchecked',
+                    'inspection-cell-checked-empty',
+                    'inspection-cell-discrepancy',
+                    'inspection-cell-problem',
+                    'inspection-cell-skipped',
+                    'pulse'
+                );
+                
+                // Добавляем новый класс
+                let newStatusClass = 'inspection-cell-unchecked';
+                switch(status) {
+                    case 'checked-empty':
+                        newStatusClass = 'inspection-cell-checked-empty';
+                        break;
+                    case 'discrepancy':
+                        newStatusClass = 'inspection-cell-discrepancy';
+                        selectedCellElement.classList.add('pulse');
+                        break;
+                    case 'problem':
+                        newStatusClass = 'inspection-cell-problem';
+                        selectedCellElement.classList.add('pulse');
+                        break;
+                    case 'skipped':
+                        newStatusClass = 'inspection-cell-skipped';
+                        break;
+                }
+                
+                selectedCellElement.classList.add(newStatusClass);
+            }
+            
+            // Сохраняем данные
+            saveData();
+            
+            // Обновляем статистику
+            if (isInspecting) {
+                // Обновляем только текущую секцию в карусели
+                const currentSection = (currentSectionIndex + 1).toString().padStart(2, '0');
+                updateSectionIndicators(currentSection);
+            } else {
+                updateOverviewDisplay();
+            }
+            
+            // Показываем уведомление
+            let message = '';
+            let type = 'info';
+            
+            switch(status) {
+                case 'checked-empty':
+                    message = `Ячейка ${selectedCell.id} отмечена как пустая`;
+                    type = 'success';
+                    break;
+                case 'discrepancy':
+                    message = `Ячейка ${selectedCell.id} отмечена как занятая (РАСХОЖДЕНИЕ!)`;
+                    type = 'warning';
+                    break;
+                case 'problem':
+                    message = `Ячейка ${selectedCell.id} отмечена как проблемная`;
+                    type = 'info';
+                    break;
+                case 'skipped':
+                    message = `Ячейка ${selectedCell.id} пропущена`;
+                    type = 'info';
+                    break;
+            }
+            
+            showNotification(message, type);
+            closeModal();
+        }
+
+        function updateSectionIndicators(section) {
+            // Обновляем карточку секции в режиме обзора
+            const sectionCard = document.querySelector(`.section-card[data-section-index="${currentSectionIndex}"]`);
+            if (sectionCard) {
+                const sectionData = warehousesData[currentAlley][section];
+                if (sectionData) {
+                    const cells = sectionData.cells;
+                    const total = cells.length;
+                    const checked = cells.filter(cell => cell.checked && cell.actualStatus !== 'skipped').length;
+                    const discrepancies = cells.filter(cell => cell.actualStatus === 'discrepancy').length;
+                    const problems = cells.filter(cell => cell.actualStatus === 'problem').length;
+                    const progress = total > 0 ? Math.round((checked / total) * 100) : 0;
+                    
+                    // Обновляем статистику в карточке
+                    const stats = sectionCard.querySelectorAll('.section-card-stat-value');
+                    if (stats.length >= 4) {
+                        stats[0].textContent = total;
+                        stats[1].textContent = checked;
+                        stats[2].textContent = discrepancies;
+                        stats[3].textContent = problems;
+                    }
+                    
+                    // Обновляем прогресс-бар
+                    const progressFill = sectionCard.querySelector('.section-card-progress-fill');
+                    if (progressFill) {
+                        progressFill.style.width = `${progress}%`;
+                    }
+                    
+                    // Обновляем статус
+                    const statusElement = sectionCard.querySelector('.section-card-status');
+                    if (statusElement) {
+                        let statusClass = 'status-not-started';
+                        let statusText = 'Не начата';
+                        
+                        if (progress === 100) {
+                            statusClass = 'status-completed';
+                            statusText = 'Завершена';
+                        } else if (progress > 0 && progress < 100) {
+                            statusClass = 'status-in-progress';
+                            statusText = 'В процессе';
+                        }
+                        
+                        if (discrepancies > 0 || problems > 0) {
+                            statusClass = 'status-with-issues';
+                            statusText = 'Есть проблемы';
+                        }
+                        
+                        statusElement.className = `section-card-status ${statusClass}`;
+                        statusElement.textContent = statusText;
+                    }
+                }
+            }
+            
+            // Обновляем глобальную статистику
+            updateGlobalStats();
+        }
+
+        // ========== УВЕДОМЛЕНИЯ ==========
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification';
+            notification.classList.add(type, 'show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
+        function setupEventListeners() {
+            // Выбор аллеи в режиме обзора
+            document.getElementById('alley-select').addEventListener('change', function() {
+                currentAlley = this.value;
+                currentSectionIndex = 0;
+                updateOverviewDisplay();
+                showNotification(`Загружена аллея ${currentAlley}`, 'info');
+            });
+            
+            // Кнопка начала проверки
+            document.getElementById('start-inspection-btn').addEventListener('click', startInspection);
+            
+            // Кнопка импорта XLS
+            document.getElementById('import-btn').addEventListener('click', openImportModal);
+            
+            // Кнопка экспорта CSV
+            document.getElementById('export-btn').addEventListener('click', exportToCSV);
+            
+            // Кнопка завершения проверки
+            document.getElementById('exit-inspection-btn').addEventListener('click', exitInspection);
+            
+            // Имя оператора
+            const operatorNameInput = document.getElementById('operator-name');
+            operatorNameInput.addEventListener('change', function() {
+                localStorage.setItem('warehouseOperator', this.value);
+                showNotification('Имя оператора сохранено', 'info');
+            });
+            
+            // Загрузка сохраненного имени оператора
+            const savedOperator = localStorage.getItem('warehouseOperator');
+            if (savedOperator) {
+                operatorNameInput.value = savedOperator;
+            }
+            
+            // Кнопки навигации карусели
+            document.getElementById('carousel-prev').addEventListener('click', prevSection);
+            document.getElementById('carousel-next').addEventListener('click', nextSection);
+            
+            // Модальное окно проверки - обработчики для опций
+            document.querySelectorAll('.modal-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const status = this.getAttribute('data-status');
+                    console.log('Выбран статус:', status);
+                    updateCellStatus(status);
+                });
+            });
+            
+            // Кнопка отмены в модальном окне проверки
+            document.getElementById('modal-cancel').addEventListener('click', closeModal);
+            
+            // Закрытие модального окна проверки при клике на оверлей
+            document.getElementById('modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+            
+            // Импорт: Drag & Drop
+            const dropzone = document.getElementById('import-dropzone');
+            const fileInput = document.getElementById('xls-file-input');
+            
+            dropzone.addEventListener('click', () => fileInput.click());
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+            
+            // Drag & Drop события
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+            
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+            
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // Кнопки модального окна импорта
+            document.getElementById('import-start-btn').addEventListener('click', startImport);
+            document.getElementById('import-cancel-btn').addEventListener('click', closeImportModal);
+            document.getElementById('clear-file-btn').addEventListener('click', resetImportForm);
+            
+            // Закрытие модального окна импорта при клике на оверлей
+            document.getElementById('import-modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeImportModal();
+                }
+            });
+            
+            // Закрытие по Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    closeImportModal();
+                }
+            });
+            
+            // Обработка свайпов для навигации
+            setupSwipeHandlers();
+            
+            // Обработка изменения размера окна
+            window.addEventListener('resize', function() {
+                isMobile = window.innerWidth < 768;
+                
+                // При изменении размера в режиме проверки перерисовываем карусель
+                if (isInspecting) {
+                    updateInspectionCarousel();
+                }
+            });
+        }
+
+        // ========== ОБРАБОТКА СВАЙПОВ ==========
+        function setupSwipeHandlers() {
+            const carouselContainer = document.getElementById('carousel-container');
+            if (!carouselContainer) return;
+            
+            let touchStartX = 0;
+            let touchEndX = 0;
+            const minSwipeDistance = 50;
+            
+            carouselContainer.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            
+            carouselContainer.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+            
+            function handleSwipe() {
+                const swipeDistance = touchEndX - touchStartX;
+                
+                if (Math.abs(swipeDistance) > minSwipeDistance) {
+                    if (swipeDistance > 0) {
+                        // Свайп вправо -> предыдущая секция
+                        prevSection();
+                    } else {
+                        // Свайп влево -> следующая секция
+                        nextSection();
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
