@@ -766,20 +766,20 @@
 
         /* WMS import status visualization */
         .inspection-cell-wms-occupied {
-            outline: 3px solid var(--danger-color);
-            outline-offset: -3px;
-            box-shadow: inset 0 0 0 3px var(--danger-color);
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.3), rgba(231, 76, 60, 0.5)) !important;
+            border: 3px solid var(--danger-color) !important;
+            box-shadow: inset 0 0 8px rgba(231, 76, 60, 0.6), 0 0 8px rgba(231, 76, 60, 0.4) !important;
         }
 
         .inspection-cell-wms-empty {
-            outline: 3px solid var(--success-color);
-            outline-offset: -3px;
-            box-shadow: inset 0 0 0 3px var(--success-color);
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.3), rgba(39, 174, 96, 0.5)) !important;
+            border: 3px solid var(--success-color) !important;
+            box-shadow: inset 0 0 8px rgba(39, 174, 96, 0.6), 0 0 8px rgba(39, 174, 96, 0.4) !important;
         }
 
         .inspection-cell-wms-unknown {
-            outline: 3px dashed #95a5a6;
-            outline-offset: -3px;
+            border: 3px dashed #95a5a6 !important;
+            box-shadow: inset 0 0 4px rgba(149, 165, 166, 0.3) !important;
         }
 
         .pulse {
@@ -2344,6 +2344,9 @@
             let validRows = 0;
             let errors = [];
 
+            console.log('=== XLS PARSING START ===');
+            console.log('Total XLS rows:', xlsData.length);
+
             let headerRow = null;
             let cellNameIndex = -1;
             let statusIndex = -1;
@@ -2423,6 +2426,7 @@
                         articlesCount: articlesCount
                     };
 
+                    console.log(`Row ${i}: cellName="${cellName}" → cellId="${cellId}", status="${status}" → systemStatus="${systemStatus}"`);
                     validRows++;
 
                 } catch (error) {
@@ -2496,11 +2500,17 @@
         function applyWMSDataToWarehouse() {
             let updatedCells = 0;
 
+            console.log('=== APPLYING WMS DATA ===');
+            console.log('Total cellsData:', Object.keys(wmsData.cellsData || {}).length);
+
             for (const cellId in wmsData.cellsData) {
                 const wmsCell = wmsData.cellsData[cellId];
                 const parts = cellId.split('-');
 
-                if (parts.length !== 4) continue;
+                if (parts.length !== 4) {
+                    console.warn(`Invalid cellId format: ${cellId}`);
+                    continue;
+                }
 
                 const [alley, section, tier, position] = parts;
 
@@ -2521,11 +2531,18 @@
                             cell.articlesCount = cell.articlesCount || 0;
                             cell.needsAttention = !!cell.needsAttention;
                         }
+                        
+                        console.log(`Updated cell ${cellId}: systemStatus=${cell.systemStatus}`);
                         updatedCells++;
+                    } else {
+                        console.warn(`Cell not found: ${alley}/${section}/${tier}/${position}`);
                     }
+                } else {
+                    console.warn(`Alley/Section not found: ${alley}/${section}`);
                 }
             }
 
+            console.log(`=== APPLY COMPLETE: ${updatedCells} cells updated ===`);
             return { updatedCells };
         }
 
