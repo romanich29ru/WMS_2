@@ -1,13 +1,15 @@
 /**
  * БЫСТРЫЙ СТАРТ: Функции для работы с XLS и артикулами
- * Включает улучшенную валидацию множественных артикулов
+ * Включает валидацию множественных артикулов
  * 
- * ╔═══════════════════════════════════════════════╗
- * ║  ПОДДЕРЖИВАЕМЫЙ ФОРМАТ XLS:                  ║
- * ║  Столбец C: Название Ячейки (OS NA 002 010) ║
- * ║  Столбец D: Статус (Свободна/Занята)        ║
- * ║  Столбец I: Артикулы (только 1 на ячейку!)  ║
- * ╚═══════════════════════════════════════════════╝
+ * ╔══════════════════════════════════════════════════╗
+ * ║  ПОДДЕРЖИВАЕМЫЙ ФОРМАТ XLS:                     ║
+ * ║  Столбец C: Название Ячейки (OS NA 002 010)    ║
+ * ║  Столбец D: Статус (Свободна/Занята)           ║
+ * ║  Столбец I: Артикулы                            ║
+ * ║             1 артикул = ✅ OK                   ║
+ * ║             2+ артикула = ⚠️ требует проверки  ║
+ * ╚══════════════════════════════════════════════════╝
  */
 
 // ========== ЗАГРУЗКА И ВАЛИДАЦИЯ XLS ==========
@@ -50,21 +52,22 @@ async function handleXLSFileUpload(file) {
 }
 
 /**
- * НОВОЕ: Показать отчет валидации XLS с ошибками
+ * НОВОЕ: Показать отчет валидации XLS
+ * ОБНОВЛЕНО: Множественные артикулы = ВНИМАНИЕ, а не ОШИБКА
  */
 function showXLSValidationReport(results) {
     const reportDiv = document.getElementById('xls-report-container') || createReportContainer();
     
-    if (results.multipleArticlesErrors.length > 0) {
-        // Есть ошибки множественных артикулов
-        const errorHTML = XLSArticlesValidator.generateHTMLReport(results);
-        reportDiv.innerHTML = errorHTML;
+    if (results.attentionRequired && results.attentionRequired.length > 0) {
+        // Есть ячейки требующие внимания (множественные артикулы)
+        const warningHTML = XLSArticlesValidator.generateHTMLReport(results);
+        reportDiv.innerHTML = warningHTML;
         reportDiv.style.display = 'block';
         
-        // Показать警告 в отдельном модальном окне
-        showMultipleArticlesErrorModal(results.multipleArticlesErrors);
-    } else if (results.errors.length > 0) {
-        // Есть другие ошибки
+        // Показать информацию в отдельном модальном окне
+        showMultipleArticlesAttentionModal(results.attentionRequired);
+    } else if (results.errors && results.errors.length > 0) {
+        // Есть ошибки парсинга
         const errorHTML = XLSArticlesValidator.generateHTMLReport(results);
         reportDiv.innerHTML = errorHTML;
         reportDiv.style.display = 'block';
@@ -79,7 +82,7 @@ function showXLSValidationReport(results) {
                         <span style="color: #166534;">${results.statistics.cellsProcessed} ячеек</span>
                     </div>
                     <div class="summary-stat" style="border-left-color: #22c55e;">
-                        <strong>✅ Без ошибок:</strong>
+                        <strong>✅ Успешно:</strong>
                         <span style="color: #166534;">${results.statistics.cellsOk}</span>
                     </div>
                     <div class="summary-stat" style="border-left-color: #22c55e;">
@@ -87,7 +90,7 @@ function showXLSValidationReport(results) {
                         <span style="color: #166534;">${results.statistics.occupiedCells}</span>
                     </div>
                     <div class="summary-stat" style="border-left-color: #22c55e;">
-                        <strong>Пусто:</strong>
+                        <strong>Свободно:</strong>
                         <span style="color: #166534;">${results.statistics.emptyCells}</span>
                     </div>
                 </div>
@@ -99,29 +102,46 @@ function showXLSValidationReport(results) {
 }
 
 /**
- * НОВОЕ: Показать модальное окно с ошибками множественных артикулов
+ * НОВОЕ: Показать модальное окно с ячейками требующими внимания (множественные артикулы)
+ * ОБНОВЛЕНО: Это не ОШИБКА, а ВНИМАНИЕ - требуется физическая проверка
  */
-function showMultipleArticlesErrorModal(errors) {
+function showMultipleArticlesAttentionModal(warnings) {
     const modalHTML = `
-        <div id="multiple-articles-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;">
-            <div style="background: white; border-radius: 8px; padding: 30px; max-width: 600px; max-height: 80vh; overflow-y: auto;">
-                <h2 style="color: #991b1b; margin: 0 0 20px 0;">⚠️ Ошибки в XLS файле</h2>
+        <div id="multiple-articles-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+            <div style="background: white; border-radius: 8px; padding: 30px; max-width: 700px; max-height: 80vh; overflow-y: auto;">
+                <h2 style="color: #92400e; margin: 0 0 20px 0;">⚠️ Внимание: требуется физическая проверка ячеек</h2>
                 
-                <div style="background: #fee2e2; border: 2px solid #fecaca; border-radius: 6px; padding: 15px; margin-bottom: 20px; color: #7f1d1d;">
-                    <p style="margin: 0 0 10px 0;"><strong>Найдено ${errors.length} ячеек с множественными артикулами:</strong></p>
-                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.5;">
-                        В одной ячейке может быть только ОДИН артикул. Если указано несколько артикулов в одной ячейке - это ошибка в данных XLS.
+                <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 6px; padding: 15px; margin-bottom: 20px; color: #78350f;">
+                    <p style="margin: 0 0 10px 0;"><strong>Найдено ${warnings.length} ячеек с несколькими артикулами в системе</strong></p>
+                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.6;">
+                        ℹ️ Это не ошибка! Данные в системе содержат несколько артикулов для этих адресов.
+                        <br>
+                        <strong>Ваша задача при проверке:</strong> Физически проверить ячейку и определить, сколько артикулов в ней на самом деле находится.
+                        <br>
+                        Добавьте комментарий с результатом проверки.
                     </p>
                 </div>
 
-                <div style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                <h4 style="color: #374151; margin-bottom: 10px;">📍 Ячейки для проверки:</h4>
+                <div style="max-height: 350px; overflow-y: auto; margin-bottom: 20px;">
     `;
 
-    for (const error of errors) {
+    for (const warning of warnings) {
         modalHTML += `
-            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
-                <strong style="color: #92400e;">Ячейка ${error.cellId}</strong><br>
-                <small style="color: #78350f;">Артикулы: ${error.articles.map(a => a.sku).join(', ')}</small>
+            <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <strong style="font-size: 1.05em; color: #92400e;">📦 ${warning.cellId}</strong>
+                        <br>
+                        <span style="color: #78350f;">Артикулы в системе:</span>
+                        <code style="background: white; padding: 4px 8px; border-radius: 3px; display: inline-block; margin: 4px 0;">
+                            ${warning.articles.map(a => a.sku).join(', ')}
+                        </code>
+                        <br>
+                        <small style="color: #a16207;">⚠️ Всего ${warning.articlesCount} артикулов</small>
+                    </div>
+                    <span style="background: #fcd34d; color: #92400e; padding: 4px 8px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap;">⚠️ Проверить</span>
+                </div>
             </div>
         `;
     }
@@ -129,24 +149,29 @@ function showMultipleArticlesErrorModal(errors) {
     modalHTML += `
                 </div>
 
-                <div style="background: #ecfdf5; border: 1px solid #d1fae5; border-radius: 6px; padding: 15px; margin-bottom: 20px; color: #065f46;">
-                    <strong>Что нужно сделать:</strong>
-                    <ol style="margin: 8px 0 0 0; padding-left: 20px;">
-                        <li>Проверить XLS файл</li>
-                        <li>Убедиться, что каждой ячейке соответствует только ОДИН артикул</li>
-                        <li>Исправить ошибки в файле</li>
-                        <li>Загрузить исправленный файл</li>
+                <div style="background: #ecfdf5; border: 1px solid #86efac; border-radius: 6px; padding: 15px; margin-bottom: 20px; color: #065f46;">
+                    <strong>📋 Инструкция при проверке ячейки:</strong>
+                    <ol style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.9rem;">
+                        <li>Найти ячейку на складе</li>
+                        <li>Физически проверить, сколько артикулов в ячейке</li>
+                        <li>При внесении статуса ячейки (занята/пуста) добавить комментарий:
+                            <ul style="margin: 4px 0 0 0; padding-left: 20px;">
+                                <li>Если 1 артикул: "Проверено. В ячейке 1 артикул: [имя артикула]"</li>
+                                <li>Если несколько: "В ячейке найдено 2 артикула: [имя1], [имя2]"</li>
+                                <li>Если другой артикул: "Найден артикул [имя], а не указанный в системе"</li>
+                            </ul>
+                        </li>
                     </ol>
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button onclick="this.closest('#multiple-articles-modal').remove()" 
                             style="padding: 10px 20px; background: #e5e7eb; color: #374151; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                        Закрыть
+                        ✓ Понял
                     </button>
-                    <button onclick="downloadXLSTemplate()" 
-                            style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                        📥 Скачать шаблон
+                    <button onclick="this.closest('#multiple-articles-modal').remove(); goToFirstAttentionCell();" 
+                            style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                        🔍 Начать проверку
                     </button>
                 </div>
             </div>
@@ -154,15 +179,14 @@ function showMultipleArticlesErrorModal(errors) {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    const modal = document.getElementById('multiple-articles-modal');
-    modal.style.display = 'flex';
+}
 
-    // Закрыть при клике вне модали
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.remove();
-        }
-    });
+/**
+ * Функция для перехода к первой ячейке требующей внимания
+ */
+function goToFirstAttentionCell() {
+    console.log('🔍 Переход к первой ячейке требующей проверки...');
+    // TODO: реализовать логику перехода и открытия модала с комментарием
 }
 
 /**

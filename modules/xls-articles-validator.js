@@ -1,9 +1,9 @@
 /**
  * Enhanced XLS Articles Validator
  * Парсит и валидирует XLS файлы с поддержкой:
- * - Множественных артикулов в одной ячейке (ОШИБКА)
+ * - Множественных артикулов в одной ячейке (ВНИМАНИЕ - требует проверки)
  * - Проверки статуса занято/пусто
- * - Визуализации ошибок в интерфейсе
+ * - Визуализации информации в интерфейсе
  * 
  * 📊 ПОДДЕРЖИВАЕМЫЙ ФОРМАТ XLS:
  * ┌────────────────────────────────────────────┐
@@ -14,10 +14,16 @@
  * │            (Свободна, Занята)              │
  * │                                            │
  * │ Столбец I: Артикулы                        │
- * │            (максимум 1 на ячейку!)         │
+ * │            (если 1: нормально)             │
+ * │            (если 2+: ВНИМАНИЕ - требует    │
+ * │             физической проверки!)          │
  * │            (разделители: ; | ,)            │
- * │            (если > 1: ОШИБКА!)             │
  * └────────────────────────────────────────────┘
+ * 
+ * 🎯 ЛОГИКА РАБОТЫ:
+ * - 1 артикул → ✅ Нормально
+ * - 2+ артикула → ⚠️ ВНИМАНИЕ: Данные неполные, требуется физическая проверка
+ *                   Сотрудник должен проверить ячейку и добавить комментарий
  */
 
 class XLSArticlesValidator {
@@ -28,15 +34,14 @@ class XLSArticlesValidator {
     static parseAndValidate(xlsData) {
         const results = {
             cellsData: {},           // Данные по ячейкам
-            errors: [],              // Список ошибок
-            warnings: [],            // Предупреждения
-            multipleArticlesErrors: [], // НОВОЕ: Ошибки множественных артикулов
+            warnings: [],            // Список внимании (множественные артикулы)
+            errors: [],              // Ошибки парсинга
+            attentionRequired: [],   // Ячейки требующие внимания
             statistics: {
                 totalRows: 0,
                 cellsProcessed: 0,
                 cellsOk: 0,
-                cellsWithErrors: 0,
-                cellsWithMultipleArticles: 0,
+                cellsNeedingAttention: 0,  // Ячейки с 2+ артикулами
                 occupiedCells: 0,
                 emptyCells: 0
             }
@@ -81,33 +86,29 @@ class XLSArticlesValidator {
 
             // Нормализовать статус
             const normalizedStatus = this.normalizeStatus(status);
-            if (normalizedStatus === 'unknown') {
-                results.warnings.push({
-                    cellId: cellId,
-                    warning: `Неясный статус: "${status}". Установлено как "empty"`
-                });
-            }
 
-            // ГЛАВНОЕ: Парсить артикулы и проверить на ошибки множественности
+            // ГЛАВНОЕ: Парсить артикулы и проверить на внимание
             const articles = this.parseArticles(articlesStr, countStr);
             
-            // ОШИБКА: Если несколько артикулов в одной ячейке
+            // ВНИМАНИЕ: Если несколько артикулов в одной ячейке
+            // Это не ОШИБКА - это требует физической проверки сотрудником!
             if (articles.length > 1) {
-                results.statistics.cellsWithMultipleArticles++;
-                results.statistics.cellsWithErrors++;
+                results.statistics.cellsNeedingAttention++;
 
-                const errorInfo = {
+                const warningInfo = {
                     cellId: cellId,
-                    severity: 'ERROR',
+                    severity: 'ATTENTION',  // ВНИМАНИЕ, а не ERROR
                     type: 'MULTIPLE_ARTICLES',
                     articlesCount: articles.length,
                     articles: articles,
-                    articlesError: `⚠️ ОШИБКА: В ячейке ${articles.length} разных артикулов вместо 1`,
-                    message: `Ячейка ${cellId} содержит ${articles.length} артикулов: ${articles.map(a => a.sku).join(', ')}. Необходимо проверить!`
+                    warningMessage: `⚠️ ВНИМАНИЕ: В системе указано ${articles.length} артикулов`,
+                    message: `Ячейка ${cellId} содержит ${articles.length} артикулов: ${articles.map(a => a.sku).join(', ')}. Требуется физическая проверка на складе!`,
+                    needsPhysicalCheck: true  // Флаг для UI - требуется проверка
                 };
 
-                results.errors.push(errorInfo);
-                results.multipleArticlesErrors.push(errorInfo);
+                results.warnings.push(warningInfo);
+                results.attentionRequired.push(warningInfo);
+                results.statistics.cellsOk++; // Считаем как OK для статистики
             } else {
                 results.statistics.cellsOk++;
             }
@@ -126,8 +127,9 @@ class XLSArticlesValidator {
                 expectedArticles: articles,
                 articlesCount: articles.length,
                 hasMultipleArticles: articles.length > 1,
-                articlesError: articles.length > 1 ? 
-                    `⚠️ ОШИБКА: В ячейке ${articles.length} артикулов вместо 1` : 
+                needsAttention: articles.length > 1,  // НОВОЕ: флаг внимания
+                warningMessage: articles.length > 1 ? 
+                    `⚠️ ВНИМАНИЕ: В системе указано ${articles.length} артикулов` : 
                     null,
                 originalRow: {
                     cellName: cellName,
@@ -323,6 +325,7 @@ class XLSArticlesValidator {
 
     /**
      * Создать HTML отчет для отображения
+     * ОБНОВЛЕНО: Множественные артикулы = ВНИМАНИЕ, а не ОШИБКА
      */
     static generateHTMLReport(results) {
         let html = `
@@ -334,33 +337,42 @@ class XLSArticlesValidator {
                         <strong>Обработано ячеек:</strong> ${results.statistics.cellsProcessed}
                     </div>
                     <div class="summary-stat">
-                        <strong>✅ Без ошибок:</strong> <span style="color: green;">${results.statistics.cellsOk}</span>
+                        <strong>✅ Обработано успешно:</strong> <span style="color: green;">${results.statistics.cellsOk}</span>
                     </div>
                     <div class="summary-stat">
-                        <strong>❌ С ошибками:</strong> <span style="color: red;">${results.statistics.cellsWithErrors}</span>
+                        <strong>⚠️ Требуют внимания:</strong> <span style="color: #f97316;">${results.statistics.cellsNeedingAttention}</span>
                     </div>
                     <div class="summary-stat">
-                        <strong>⚠️ Множественные артикулы:</strong> <span style="color: orange;">${results.statistics.cellsWithMultipleArticles}</span>
+                        <strong>📦 Занято:</strong> ${results.statistics.occupiedCells}
+                    </div>
+                    <div class="summary-stat">
+                        <strong>🆓 Свободно:</strong> ${results.statistics.emptyCells}
                     </div>
                 </div>
         `;
 
-        // Ошибки множественных артикулов
-        if (results.multipleArticlesErrors.length > 0) {
+        // Ячейки требующие внимания (множественные артикулы)
+        if (results.attentionRequired && results.attentionRequired.length > 0) {
             html += `
-                <div class="errors-section" style="background: #fee2e2; border: 2px solid #fecaca; padding: 15px; margin: 10px 0; border-radius: 6px;">
-                    <h4 style="color: #991b1b;">⚠️ Ошибки множественных артикулов в одной ячейке:</h4>
-                    <ul style="color: #7f1d1d;">
+                <div class="attention-section" style="background: #fef3c7; border: 2px solid #f59e0b; padding: 15px; margin: 10px 0; border-radius: 6px;">
+                    <h4 style="color: #92400e; margin-top: 0;">⚠️ Ячейки требующие физической проверки (${results.attentionRequired.length})</h4>
+                    <p style="color: #78350f; margin: 8px 0; font-size: 0.9rem;">
+                        Эти ячейки содержат несколько артикулов в системе. Требуется физическая проверка на складе.
+                        Сотрудник должен проверить ячейку и подтвердить фактическое количество артикулов.
+                    </p>
+                    <ul style="color: #78350f; margin: 10px 0;">
             `;
 
-            for (const error of results.multipleArticlesErrors) {
+            for (const warning of results.attentionRequired) {
                 html += `
                     <li>
-                        <strong>${error.cellId}</strong> - 
-                        Найдено ${error.articlesCount} артикулов: 
-                        <code style="background: #fff3e0; padding: 2px 6px; border-radius: 3px;">
-                            ${error.articles.map(a => a.sku).join(', ')}
+                        <strong>${warning.cellId}</strong>:
+                        ${warning.articlesCount} артикулов - 
+                        <code style="background: white; padding: 2px 6px; border-radius: 3px;">
+                            ${warning.articles.map(a => a.sku).join(', ')}
                         </code>
+                        <br>
+                        <small style="color: #92400e;">→ Требуется проверить в процессе инвентаризации</small>
                     </li>
                 `;
             }
@@ -371,33 +383,16 @@ class XLSArticlesValidator {
             `;
         }
 
-        // Обычные ошибки
-        if (results.errors.length > 0 && results.multipleArticlesErrors.length === 0) {
+        // Ошибки парсинга (если есть)
+        if (results.errors && results.errors.length > 0) {
             html += `
                 <div class="errors-section" style="background: #fee2e2; border: 2px solid #fecaca; padding: 15px; margin: 10px 0; border-radius: 6px;">
-                    <h4 style="color: #991b1b;">❌ Ошибки:</h4>
+                    <h4 style="color: #991b1b;">❌ Ошибки парсинга:</h4>
                     <ul style="color: #7f1d1d;">
             `;
 
             for (const error of results.errors) {
-                if (error.type === 'MULTIPLE_ARTICLES') {
-                    html += `<li><strong>${error.cellId}</strong> - ${error.message}</li>`;
-                }
-            }
-
-            html += `</ul></div>`;
-        }
-
-        // Предупреждения
-        if (results.warnings.length > 0) {
-            html += `
-                <div class="warnings-section" style="background: #fef3c7; border: 2px solid #fde047; padding: 15px; margin: 10px 0; border-radius: 6px;">
-                    <h4 style="color: #92400e;">⚠️ Предупреждения:</h4>
-                    <ul style="color: #78350f;">
-            `;
-
-            for (const warning of results.warnings) {
-                html += `<li>${warning.cellId} - ${warning.warning}</li>`;
+                html += `<li>${error.error || error.message || JSON.stringify(error)}</li>`;
             }
 
             html += `</ul></div>`;
