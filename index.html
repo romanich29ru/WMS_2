@@ -1756,7 +1756,7 @@
         const pickingTiers = ['02', '03'];
         const upperTiers = ['10', '11', '12', '13', '14', '15'];
         const positions = ['A', 'B', 'C'];
-        const totalSections = 15;
+        const totalSections = 23;  // Expanded to support alleys with up to 23 sections
 
         // ========== PWA И OFFLINE ==========
         // Регистрация Service Worker
@@ -2487,13 +2487,13 @@
         }
 
         function convertStatus(status) {
-            const statusLower = status.toLowerCase();
+            const statusLower = status.toLowerCase().trim();
             console.log(`[convertStatus] Input: "${status}" → Lowercase: "${statusLower}"`);
 
-            if (statusLower.includes('свобод') || statusLower.includes('пуст') || statusLower === 'empty' || statusLower === 'свободно') {
+            if (statusLower.includes('свобод') || statusLower.includes('пуст') || statusLower === 'empty' || statusLower === 'свободна' || statusLower === 'свободно' || statusLower === 'free') {
                 console.log(`  → Result: "empty"`);
                 return 'empty';
-            } else if (statusLower.includes('занят') || statusLower.includes('заполн') || statusLower === 'occupied' || statusLower === 'занято') {
+            } else if (statusLower.includes('занят') || statusLower.includes('заполн') || statusLower === 'occupied' || statusLower === 'занята' || statusLower === 'занято' || statusLower === 'taken') {
                 console.log(`  → Result: "occupied"`);
                 return 'occupied';
             }
