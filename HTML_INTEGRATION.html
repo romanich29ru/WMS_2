@@ -1,0 +1,196 @@
+<!-- ========================================================
+     БЫСТРОЕ ПОДКЛЮЧЕНИЕ СИНХРОНИЗАЦИИ И МОНИТОРИНГА
+     Копировать эти блоки в index.html
+     ======================================================== -->
+
+<!-- 1. ДОБАВИТЬ В <head> ПЕРЕД </head> -->
+<link rel="stylesheet" href="/styles/articles-sync.css">
+
+<!-- 2. ДОБАВИТЬ В <body> ПОСЛЕ <div id="app"> И ДО </body> -->
+
+<!-- Режим мониторинга (для ПК) -->
+<div id="monitoring-mode" class="monitoring-mode">
+    <div class="monitoring-header">
+        <div class="monitoring-title">
+            🏢 Мониторинг аллеи: <span id="monitoring-alley-name">-</span>
+        </div>
+        <div class="monitoring-stats">
+            <div class="monitoring-stat">
+                Всего: <span class="monitoring-stat-value" id="stat-total">0</span>
+            </div>
+            <div class="monitoring-stat">
+                ✅ Проверено: <span class="monitoring-stat-value" id="stat-checked">0</span>
+            </div>
+            <div class="monitoring-stat">
+                ⚠️ Несоответствия: <span class="monitoring-stat-value" id="stat-discrepancy">0</span>
+            </div>
+            <div class="monitoring-stat">
+                ❌ Ошибки: <span class="monitoring-stat-value" id="stat-errors">0</span>
+            </div>
+            <button onclick="closeMonitoringMode()" 
+                    style="margin-left: 30px; padding: 8px 12px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                ✕ Закрыть
+            </button>
+        </div>
+    </div>
+
+    <div class="monitoring-filters">
+        <span class="filter-label">Фильтр по статусу:</span>
+        <div class="filter-buttons-group">
+            <button class="monitoring-filter-btn active" onclick="setMonitoringFilter('status', 'all')">Все</button>
+            <button class="monitoring-filter-btn" onclick="setMonitoringFilter('status', 'unchecked')">⬜ Не проверены</button>
+            <button class="monitoring-filter-btn" onclick="setMonitoringFilter('status', 'checked')">✅ Проверены</button>
+            <button class="monitoring-filter-btn" onclick="setMonitoringFilter('status', 'discrepancy')">⚠️ Несоответствия</button>
+            <button class="monitoring-filter-btn" onclick="setMonitoringFilter('status', 'error')">❌ Ошибки</button>
+        </div>
+    </div>
+
+    <div class="alleys-grid" id="topology-container">
+        <!-- Сетка ячеек генерируется здесь JavaScript -->
+    </div>
+
+    <div class="sync-status-indicator" id="sync-indicator" style="display: none;">
+        <div class="sync-status-dot synced" id="sync-status-dot"></div>
+        <span class="sync-status-text">
+            Статус: <span id="sync-status-text">Синхронизировано</span>
+        </span>
+        <span class="sync-queue-count" id="sync-queue-count" style="display: none;">
+            (в очереди: <span id="queue-count">0</span>)
+        </span>
+    </div>
+</div>
+
+<!-- 3. ДОБАВИТЬ КНОПКУ МОНИТОРИНГА В NAVBAR/HEADER -->
+<!-- Поместить эту кнопку в существующий navbar рядом с другими кнопками -->
+<button id="monitoring-btn" 
+        class="header-btn" 
+        onclick="openMonitoringMode(currentAlley)" 
+        title="Открыть режим мониторинга аллеи"
+        style="padding: 10px 14px; margin: 0 5px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.95rem;">
+    📊 Мониторинг
+</button>
+
+<!-- Кнопка отчета синхро (опционально) -->
+<button id="sync-report-btn" 
+        class="header-btn" 
+        onclick="exportSyncReport()" 
+        title="Экспортировать отчет синхронизации"
+        style="padding: 10px 14px; margin: 0 5px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.95rem;">
+    📋 Отчет
+</button>
+
+<!-- 4. ПОДКЛЮЧИТЬ СКРИПТЫ ПЕРЕД </body> -->
+<script src="/modules/sync-articles.js"></script>
+<script src="/modules/realtime-sync.js"></script>
+<script src="/quickstart.js"></script>
+
+<!-- 5. ИНИЦИАЛИЗАЦИЯ (добавить в существующий <script> тег) -->
+<script>
+    // Вызвать эту функцию после инициализации warehousesData
+    document.addEventListener('DOMContentLoaded', function() {
+        // Существующий код инициализации...
+        
+        // === ДОБАВИТЬ СИНХРОНИЗАЦИЮ ===
+        setTimeout(() => {
+            if (typeof initSync === 'function') {
+                initSync();
+                console.log('✓ Синхронизация инициализирована успешно');
+            }
+        }, 1500); // Подождать загрузки основных данных
+    });
+</script>
+
+<!-- ========================================================
+     ДОПОЛНИТЕЛЬНЫЕ ЭЛЕМЕНТЫ ИНТЕРФЕЙСА
+     ======================================================== -->
+
+<!-- Контейнер для артикулов в модальном окне -->
+<!-- Добавить этот блок внутри модального окна (modal), перед кнопками статусов -->
+<div id="articles-container" style="margin: 15px 0;">
+    <!-- Содержимое генерируется JavaScript из updateCellStatus() -->
+</div>
+
+<!-- ========================================================
+     СТИЛИ ДЛЯ КНОПОК И ИНТЕГРАЦИИ (опционально)
+     ======================================================== -->
+<style>
+    .header-btn {
+        transition: all 0.2s ease;
+    }
+
+    .header-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .header-btn:active {
+        transform: translateY(0);
+    }
+
+    /* Отключить мониторинг на мобильных */
+    @media (max-width: 768px) {
+        #monitoring-mode {
+            display: none !important;
+        }
+        #monitoring-btn {
+            display: none !important;
+        }
+    }
+
+    /* Тематические стили для элементов */
+    .topology-cell-unchecked {
+        background: #ecf0f1;
+        color: #34495e;
+        border-color: #bdc3c7;
+    }
+
+    .topology-cell-checked-ok {
+        background: #d5f4e6;
+        color: #27ae60;
+        border-color: #1abc9c;
+    }
+
+    .topology-cell-discrepancy {
+        background: #fef5e7;
+        color: #f39c12;
+        border-color: #f1c40f;
+    }
+
+    .topology-cell-error {
+        background: #fadbd8;
+        color: #c0392b;
+        border-color: #e74c3c;
+    }
+
+    .topology-cell-article-error {
+        background: #ebdef0;
+        color: #8e44ad;
+        border-color: #af7ac5;
+    }
+</style>
+
+<!-- ========================================================
+     ПРИМЕРЫ КОМАНД ДЛЯ КОНСОЛИ (для отладки)
+     ======================================================== -->
+<!--
+// Открыть режим мониторинга
+openMonitoringMode('A01');
+
+// Показать статус синхронизации
+console.log(syncManager.getSyncQueueStatus());
+
+// Экспортировать отчет
+exportSyncReport();
+
+// Показать отладку
+debugSync();
+
+// Очистить очередь синхро
+syncManager.clearSyncQueue();
+
+// Слушать события
+syncManager.on('remote-update', (data) => {
+    console.log('Получено удаленное обновление:', data);
+    location.reload();
+});
+-->
