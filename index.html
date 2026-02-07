@@ -720,6 +720,25 @@
             border-radius: 2px;
         }
 
+        .cell-articles-badge {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.18);
+            color: white;
+            padding: 2px 6px;
+            font-size: 0.72rem;
+            border-radius: 10px;
+            font-weight: 600;
+            backdrop-filter: blur(2px);
+        }
+
+        .cell-articles-badge.attention {
+            background: var(--warning-color);
+            color: white;
+            box-shadow: 0 4px 10px rgba(243,156,18,0.15);
+        }
+
         /* Цвета состояний ячеек */
         .inspection-cell-unchecked {
             background-color: var(--success-color);
@@ -2296,7 +2315,6 @@
                 reader.readAsArrayBuffer(file);
             });
         }
-
         function processXLSData(xlsData) {
             const processedData = {};
             let totalRows = 0;
@@ -2307,6 +2325,7 @@
             let cellNameIndex = -1;
             let statusIndex = -1;
             let alleyIndex = -1;
+            let articlesIndex = -1;
 
             for (let i = 0; i < Math.min(5, xlsData.length); i++) {
                 const row = xlsData[i];
@@ -2322,6 +2341,9 @@
                         }
                         if (cellValue.includes('алле') || cellValue.includes('номер аллеи')) {
                             alleyIndex = j;
+                        }
+                        if (cellValue.includes('артикул') || cellValue.includes('артикулы') || cellValue.includes('количество') || cellValue.includes('articles')) {
+                            articlesIndex = j;
                         }
                     }
 
@@ -2346,6 +2368,7 @@
                     const cellName = String(row[cellNameIndex] || '').trim();
                     const status = String(row[statusIndex] || '').trim();
                     const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
+                    const articlesRaw = articlesIndex !== -1 ? String(row[articlesIndex] || '').trim() : '';
 
                     if (!cellName || !status) {
                         errors.push(`Строка ${i+1}: пропущены данные`);
@@ -2362,10 +2385,18 @@
                     const cellId = `${parsedCell.alley}-${parsedCell.section}-${parsedCell.tier}-${parsedCell.position}`;
                     const systemStatus = convertStatus(status);
 
+                    // parse articles list (split on common separators)
+                    let parsedArticles = [];
+                    if (articlesRaw) {
+                        parsedArticles = articlesRaw.split(/;|\||,|\n|\\/).map(s => String(s || '').trim()).filter(Boolean);
+                    }
+
                     processedData[cellId] = {
                         cellId: cellId,
                         systemStatus: systemStatus,
-                        parsedData: parsedCell
+                        parsedData: parsedCell,
+                        parsedArticles: parsedArticles,
+                        articlesCount: parsedArticles.length
                     };
 
                     validRows++;
@@ -2455,7 +2486,23 @@
                     );
 
                     if (cell) {
+                        // System status
                         cell.systemStatus = wmsCell.systemStatus;
+                        // Articles info from XLS (if available)
+                        if (wmsCell.parsedArticles) {
+                            cell.parsedArticles = wmsCell.parsedArticles;
+                            cell.articlesCount = wmsCell.articlesCount || wmsCell.parsedArticles.length || 0;
+                        } else if (typeof wmsCell.articlesCount === 'number') {
+                            cell.articlesCount = wmsCell.articlesCount;
+                            cell.parsedArticles = [];
+                        } else {
+                            cell.parsedArticles = cell.parsedArticles || [];
+                            cell.articlesCount = cell.articlesCount || 0;
+                        }
+
+                        // Flag attention when multiple distinct articles present
+                        cell.needsAttention = (cell.articlesCount || 0) >= 2;
+
                         updatedCells++;
                     }
                 }
@@ -2814,9 +2861,10 @@
         function createCellElement(cell) {
             const cellElement = document.createElement('div');
 
+            // Default visual: all un-checked cells use the green base
             let statusClass = 'inspection-cell-unchecked';
             if (cell.checked) {
-                switch(cell.actualStatus) {
+                switch (cell.actualStatus) {
                     case 'checked-empty': statusClass = 'inspection-cell-checked-empty'; break;
                     case 'discrepancy': statusClass = 'inspection-cell-discrepancy'; break;
                     case 'problem': statusClass = 'inspection-cell-problem'; break;
@@ -2829,11 +2877,8 @@
                 cellElement.classList.add('pulse');
             }
 
-            if (cell.systemStatus === 'occupied') {
-                cellElement.style.borderLeft = '4px solid #e74c3c';
-            } else if (cell.systemStatus === 'empty') {
-                cellElement.style.borderLeft = '4px solid #2ecc71';
-            }
+            // Do not change background color depending on WMS systemStatus.
+            // Show articles count as a badge and an attention marker when needed.
 
             cellElement.dataset.cellId = cell.id;
 
@@ -2842,12 +2887,18 @@
                 photoIndicator = `<div class="inspection-cell-photo-indicator">${cell.photos.length}</div>`;
             }
 
-            let statusIcon = cell.systemStatus === 'occupied' ? '&#128230;' : '&#9634;';
+            const articlesCount = cell.articlesCount || 0;
+            const articlesBadge = articlesCount > 0 ? `<div class="cell-articles-badge ${articlesCount >= 2 ? 'attention' : ''}">${articlesCount}</div>` : '';
+
+            if (cell.needsAttention) {
+                cellElement.classList.add('needs-attention');
+            }
 
             cellElement.innerHTML = `
                 ${photoIndicator}
                 <div class="inspection-cell-address">${cell.position}</div>
-                <div class="inspection-cell-position">${statusIcon}</div>
+                <div class="inspection-cell-position"></div>
+                ${articlesBadge}
             `;
 
             cellElement.addEventListener('click', (e) => {
