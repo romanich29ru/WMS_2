@@ -938,6 +938,40 @@
             border-radius: var(--border-radius);
         }
 
+        .modal-info-block {
+            margin-bottom: 15px;
+            padding: 12px;
+            background-color: #f0f4f8;
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .modal-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .modal-info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-info-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            min-width: 120px;
+        }
+
+        .modal-info-value {
+            color: #333;
+            word-wrap: break-word;
+            flex: 1;
+            text-align: right;
+        }
+
         .modal-options {
             display: flex;
             flex-direction: column;
@@ -1594,6 +1628,18 @@
         <div class="modal">
             <h3 class="modal-title">Состояние ячейки</h3>
             <div class="modal-address" id="modal-address">A01-01-01-A</div>
+            
+            <!-- Информация о статусе и артикулах -->
+            <div class="modal-info-block">
+                <div class="modal-info-row">
+                    <span class="modal-info-label">Статус WMS:</span>
+                    <span class="modal-info-value" id="modal-status">-</span>
+                </div>
+                <div class="modal-info-row">
+                    <span class="modal-info-label">Артикулы:</span>
+                    <span class="modal-info-value" id="modal-articles">Нет данных</span>
+                </div>
+            </div>
 
             <!-- Секция фото -->
             <div class="modal-photo-section">
@@ -2340,6 +2386,8 @@
 
         function processXLSData(xlsData) {
             const processedData = {};
+            const cellIdCounts = {};  // cellId -> count of rows with this address
+            const cellIdArticles = {}; // cellId -> list of article codes from column
             let totalRows = 0;
             let validRows = 0;
             let errors = [];
@@ -2348,96 +2396,84 @@
             console.log('Total XLS rows:', xlsData.length);
 
             let headerRow = null;
-            let cellNameIndex = -1;
-            let statusIndex = -1;
+            
+            // FIXED COLUMN INDICES (0-based):
+            // C = column 3 (index 2): адрес (название ячейки)
+            // D = column 4 (index 3): статус (занято/свободно)
+            // I = column 9 (index 8): артикул
+            let cellNameIndex = 2;  // Column C
+            let statusIndex = 3;    // Column D
+            let articlesIndex = 8;  // Column I
             let alleyIndex = -1;
-            let articlesIndex = -1;
+            let cellIdCounts_raw = {}; // just for display
 
-            // Step 1: Detect header row and columns by name
+            // Auto-detect header row (first 5 rows search for known headers)
             for (let i = 0; i < Math.min(5, xlsData.length); i++) {
                 const row = xlsData[i];
                 if (Array.isArray(row)) {
-                    for (let j = 0; j < row.length; j++) {
-                        const cellValue = String(row[j] || '').toLowerCase();
-
-                        if (cellValue.includes('название') && cellValue.includes('ячейки')) {
-                            cellNameIndex = j;
-                        }
-                        if (cellValue.includes('статус')) {
-                            statusIndex = j;
-                        }
-                        if (cellValue.includes('артикул') || cellValue.includes('article') || cellValue.includes('sku')) {
-                            articlesIndex = j;
-                        }
-                        if (cellValue.includes('алле') || cellValue.includes('номер аллеи')) {
-                            alleyIndex = j;
-                        }
-                    }
-
-                    if (cellNameIndex !== -1) {
+                    const has_header = row.some(cell => {
+                        const val = String(cell || '').toLowerCase();
+                        return val.includes('название') || val.includes('статус') || val.includes('артикул');
+                    });
+                    if (has_header) {
                         headerRow = i;
+                        console.log(`Header detected at row ${i}`);
                         break;
                     }
                 }
             }
 
-            if (cellNameIndex === -1) {
-                throw new Error('Не найдена колонка "Название Ячейки"');
+            if (headerRow === null) {
+                headerRow = 0; // assume first row is header
             }
 
-            // Step 2: If status by header not found, scan first 100 rows to detect status column by value keywords
-            if (statusIndex === -1 && headerRow !== null) {
-                const statusKeywords = ['свободна', 'занято', 'занята', 'occupied', 'empty', 'vacant', 'пусто'];
-                const colScores = {};
-                for (let i = (headerRow || 0) + 1; i < Math.min((headerRow || 0) + 101, xlsData.length); i++) {
-                    const row = xlsData[i];
-                    if (!Array.isArray(row)) continue;
-                    for (let j = 0; j < row.length; j++) {
-                        const val = String(row[j] || '').toLowerCase();
-                        for (const kw of statusKeywords) {
-                            if (val.includes(kw)) {
-                                colScores[j] = (colScores[j] || 0) + 1;
-                                break;
-                            }
+            console.log(`FIXED Column Indexes: cellName(C)=${cellNameIndex}, status(D)=${statusIndex}, articles(I)=${articlesIndex}`);
+
+            // ===== PASS 1: Count occurrences of each cellId and collect articles =====
+            for (let i = (headerRow || 0) + 1; i < xlsData.length; i++) {
+                const row = xlsData[i];
+                if (!Array.isArray(row) || row.length === 0) continue;
+
+                try {
+                    if (statusIndex === -1) {
+                        errors.push(`Строка ${i+1}: статус не найден (колонка не определена)`);
+                        continue;
+                    }
+
+                    const cellName = String(row[cellNameIndex] || '').trim();
+                    const status = String(row[statusIndex] || '').trim();
+                    const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
+                    const articleCode = articlesIndex !== -1 ? String(row[articlesIndex] || '').trim() : '';
+
+                    if (!cellName || !status) {
+                        continue;
+                    }
+
+                    const parsedCell = parseCellName(cellName, alley);
+                    if (!parsedCell) {
+                        continue;
+                    }
+
+                    const cellId = `${parsedCell.alley}-${parsedCell.section}-${parsedCell.tier}-${parsedCell.position}`;
+
+                    // COUNT: increment cellId counter
+                    cellIdCounts[cellId] = (cellIdCounts[cellId] || 0) + 1;
+
+                    // ARTICLES: collect article codes
+                    if (articleCode) {
+                        if (!cellIdArticles[cellId]) cellIdArticles[cellId] = [];
+                        // avoid duplicates
+                        if (!cellIdArticles[cellId].includes(articleCode)) {
+                            cellIdArticles[cellId].push(articleCode);
                         }
                     }
-                }
-                if (Object.keys(colScores).length > 0) {
-                    statusIndex = Object.keys(colScores).reduce((a, b) => colScores[a] > colScores[b] ? a : b);
-                    console.log(`[Auto-detect] Status column: ${statusIndex}`);
+
+                } catch (error) {
+                    // skip silently
                 }
             }
 
-            // Step 3: If articles column not found by header, scan for SKU-like values
-            if (articlesIndex === -1 && headerRow !== null) {
-                const colScores = {};
-                for (let i = (headerRow || 0) + 1; i < Math.min((headerRow || 0) + 101, xlsData.length); i++) {
-                    const row = xlsData[i];
-                    if (!Array.isArray(row)) continue;
-                    for (let j = 0; j < row.length; j++) {
-                        if (j === cellNameIndex || j === statusIndex) continue; // skip name and status cols
-                        const val = String(row[j] || '').trim();
-                        if (!val) continue;
-                        // score SKU-like: contains comma/semicolon, or multiple digit-tokens
-                        let score = 0;
-                        if (val.includes(',') || val.includes(';')) score += 3;
-                        const toks = val.split(/[\s,;]+/).filter(t => t.length > 0);
-                        for (const tok of toks) {
-                            if (/^[0-9_\-]{3,}$/.test(tok) || /^[A-Z0-9_]{5,}$/i.test(tok)) score++;
-                        }
-                        if (score > 0) {
-                            colScores[j] = (colScores[j] || 0) + score;
-                        }
-                    }
-                }
-                if (Object.keys(colScores).length > 0) {
-                    articlesIndex = Object.keys(colScores).reduce((a, b) => colScores[a] > colScores[b] ? a : b);
-                    console.log(`[Auto-detect] Articles column: ${articlesIndex}`);
-                }
-            }
-
-            console.log(`Detected indexes: cellName=${cellNameIndex}, status=${statusIndex}, articles=${articlesIndex}, alley=${alleyIndex}`);
-
+            // ===== PASS 2: Build processedData with correct articles count =====
             for (let i = (headerRow || 0) + 1; i < xlsData.length; i++) {
                 const row = xlsData[i];
                 if (!Array.isArray(row) || row.length === 0) continue;
@@ -2453,7 +2489,7 @@
                     const cellName = String(row[cellNameIndex] || '').trim();
                     const status = String(row[statusIndex] || '').trim();
                     const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
-                    const articlesRaw = articlesIndex !== -1 ? String(row[articlesIndex] || '').trim() : '';
+                    const articleCode = articlesIndex !== -1 ? String(row[articlesIndex] || '').trim() : '';
 
                     if (!cellName || !status) {
                         errors.push(`Строка ${i+1}: пропущены cellName или status`);
@@ -2470,17 +2506,12 @@
                     const cellId = `${parsedCell.alley}-${parsedCell.section}-${parsedCell.tier}-${parsedCell.position}`;
                     const systemStatus = convertStatus(status);
 
-                    // Parse articles list (comma/semicolon/space separated) and count
-                    let parsedArticles = [];
-                    if (articlesRaw) {
-                        // Split on common delimiters and filter:
-                        parsedArticles = articlesRaw
-                            .split(/[;,\/\\\|\s]+/)
-                            .map(a => a.trim())
-                            .filter(a => a.length > 1); // skip single-char tokens
-                    }
-                    const articlesCount = parsedArticles.length;
-                    const needsAttention = articlesCount >= 2; // Mark for physical verification if 2+ articles
+                    // Get articles count from PASS 1 (how many rows have this address)
+                    const articlesCount = cellIdCounts[cellId] || 0;
+                    const needsAttention = articlesCount >= 2; // Mark for physical verification if 2+ rows with same address
+                    
+                    // Get list of article codes for display
+                    const parsedArticles = cellIdArticles[cellId] || [];
 
                     processedData[cellId] = {
                         cellId: cellId,
@@ -2491,7 +2522,7 @@
                         needsAttention: needsAttention
                     };
 
-                    console.log(`Row ${i}: cellName="${cellName}" → cellId="${cellId}", status="${status}" → systemStatus="${systemStatus}", articles=${articlesCount}, needsAttention=${needsAttention}`);
+                    console.log(`Row ${i}: cellName="${cellName}" → cellId="${cellId}", status="${status}" → systemStatus="${systemStatus}", rows_with_this_address=${articlesCount}, needsAttention=${needsAttention}, articles=${parsedArticles.join(', ')}`);
                     validRows++;
 
                 } catch (error) {
@@ -3118,6 +3149,24 @@
         // ========== МОДАЛЬНОЕ ОКНО ==========
         function openModal(cell) {
             document.getElementById('modal-address').textContent = cell.id;
+            
+            // Отображение статуса WMS
+            let statusLabel = '-';
+            if (cell.systemStatus === 'occupied') {
+                statusLabel = '✓ Занято';
+            } else if (cell.systemStatus === 'empty') {
+                statusLabel = '○ Свободно';
+            } else if (cell.systemStatus === 'unknown') {
+                statusLabel = '? Неизвестно';
+            }
+            document.getElementById('modal-status').textContent = statusLabel;
+            
+            // Отображение артикулов
+            const articlesText = (cell.parsedArticles && cell.parsedArticles.length > 0) 
+                ? cell.parsedArticles.join(', ')
+                : 'Нет данных';
+            document.getElementById('modal-articles').textContent = articlesText;
+            
             document.getElementById('modal-overlay').classList.add('show');
             updatePhotoPreview();
         }
