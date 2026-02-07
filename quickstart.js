@@ -1,12 +1,402 @@
 /**
- * БЫСТРЫЙ СТАРТ: Синхронизация и мониторинг
- * Копировать эти функции прямо в <script> тег index.html
- * 
- * Требуется подключить:
- * - /modules/sync-articles.js
- * - /modules/realtime-sync.js
- * - /styles/articles-sync.css
+ * БЫСТРЫЙ СТАРТ: Функции для работы с XLS и артикулами
+ * Включает улучшенную валидацию множественных артикулов
  */
+
+// ========== ЗАГРУЗКА И ВАЛИДАЦИЯ XLS ==========
+/**
+ * Улучшенная функция загрузки XLS с валидацией множественных артикулов
+ */
+async function handleXLSFileUpload(file) {
+    if (!file) return;
+
+    console.log('📥 Загрузка XLS файла:', file.name);
+    
+    try {
+        const data = await readXLSFile(file);
+        
+        // НОВОЕ: Использовать улучшенный валидатор
+        if (typeof XLSArticlesValidator !== 'undefined') {
+            const results = XLSArticlesValidator.parseAndValidate(data);
+            
+            // Показать отчет с ошибками
+            showXLSValidationReport(results);
+            
+            // Применить данные
+            applyWMSDataToWarehouse(results.cellsData);
+            
+            console.log('✅ XLS загружена и валидирована');
+            console.log('📊 Отчет:', results);
+            
+            return results;
+        } else {
+            console.warn('⚠️ XLSArticlesValidator не найден, используем старый парсер');
+            const parser = new XLSArticlesParser();
+            const { cellsData, errors } = parser.parseArticlesData(data);
+            applyWMSDataToWarehouse(cellsData);
+            return { cellsData, errors };
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки XLS:', error);
+        showXLSError(error.message);
+    }
+}
+
+/**
+ * НОВОЕ: Показать отчет валидации XLS с ошибками
+ */
+function showXLSValidationReport(results) {
+    const reportDiv = document.getElementById('xls-report-container') || createReportContainer();
+    
+    if (results.multipleArticlesErrors.length > 0) {
+        // Есть ошибки множественных артикулов
+        const errorHTML = XLSArticlesValidator.generateHTMLReport(results);
+        reportDiv.innerHTML = errorHTML;
+        reportDiv.style.display = 'block';
+        
+        // Показать警告 в отдельном модальном окне
+        showMultipleArticlesErrorModal(results.multipleArticlesErrors);
+    } else if (results.errors.length > 0) {
+        // Есть другие ошибки
+        const errorHTML = XLSArticlesValidator.generateHTMLReport(results);
+        reportDiv.innerHTML = errorHTML;
+        reportDiv.style.display = 'block';
+    } else {
+        // Всё успешно
+        const html = `
+            <div class="xls-report" style="background: #dcfce7; border: 2px solid #86efac; color: #166534;">
+                <h3>✅ XLS успешно загружена</h3>
+                <div class="report-summary">
+                    <div class="summary-stat" style="border-left-color: #22c55e;">
+                        <strong>Обработано:</strong>
+                        <span style="color: #166534;">${results.statistics.cellsProcessed} ячеек</span>
+                    </div>
+                    <div class="summary-stat" style="border-left-color: #22c55e;">
+                        <strong>✅ Без ошибок:</strong>
+                        <span style="color: #166534;">${results.statistics.cellsOk}</span>
+                    </div>
+                    <div class="summary-stat" style="border-left-color: #22c55e;">
+                        <strong>Занято:</strong>
+                        <span style="color: #166534;">${results.statistics.occupiedCells}</span>
+                    </div>
+                    <div class="summary-stat" style="border-left-color: #22c55e;">
+                        <strong>Пусто:</strong>
+                        <span style="color: #166534;">${results.statistics.emptyCells}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        reportDiv.innerHTML = html;
+        reportDiv.style.display = 'block';
+    }
+}
+
+/**
+ * НОВОЕ: Показать модальное окно с ошибками множественных артикулов
+ */
+function showMultipleArticlesErrorModal(errors) {
+    const modalHTML = `
+        <div id="multiple-articles-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+            <div style="background: white; border-radius: 8px; padding: 30px; max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                <h2 style="color: #991b1b; margin: 0 0 20px 0;">⚠️ Ошибки в XLS файле</h2>
+                
+                <div style="background: #fee2e2; border: 2px solid #fecaca; border-radius: 6px; padding: 15px; margin-bottom: 20px; color: #7f1d1d;">
+                    <p style="margin: 0 0 10px 0;"><strong>Найдено ${errors.length} ячеек с множественными артикулами:</strong></p>
+                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.5;">
+                        В одной ячейке может быть только ОДИН артикул. Если указано несколько артикулов в одной ячейке - это ошибка в данных XLS.
+                    </p>
+                </div>
+
+                <div style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+    `;
+
+    for (const error of errors) {
+        modalHTML += `
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                <strong style="color: #92400e;">Ячейка ${error.cellId}</strong><br>
+                <small style="color: #78350f;">Артикулы: ${error.articles.map(a => a.sku).join(', ')}</small>
+            </div>
+        `;
+    }
+
+    modalHTML += `
+                </div>
+
+                <div style="background: #ecfdf5; border: 1px solid #d1fae5; border-radius: 6px; padding: 15px; margin-bottom: 20px; color: #065f46;">
+                    <strong>Что нужно сделать:</strong>
+                    <ol style="margin: 8px 0 0 0; padding-left: 20px;">
+                        <li>Проверить XLS файл</li>
+                        <li>Убедиться, что каждой ячейке соответствует только ОДИН артикул</li>
+                        <li>Исправить ошибки в файле</li>
+                        <li>Загрузить исправленный файл</li>
+                    </ol>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button onclick="this.closest('#multiple-articles-modal').remove()" 
+                            style="padding: 10px 20px; background: #e5e7eb; color: #374151; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                        Закрыть
+                    </button>
+                    <button onclick="downloadXLSTemplate()" 
+                            style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                        📥 Скачать шаблон
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    const modal = document.getElementById('multiple-articles-modal');
+    modal.style.display = 'flex';
+
+    // Закрыть при клике вне модали
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+/**
+ * Создать контейнер для отчета XLS если его нет
+ */
+function createReportContainer() {
+    const container = document.createElement('div');
+    container.id = 'xls-report-container';
+    container.style.cssText = 'margin: 20px 0; padding: 20px; background: white; border-radius: 8px;';
+    
+    // Вставить после modal если есть, иначе в body
+    const modal = document.getElementById('modal') || document.getElementById('app');
+    if (modal && modal.parentElement) {
+        modal.parentElement.insertBefore(container, modal.nextSibling);
+    } else {
+        document.body.appendChild(container);
+    }
+    
+    return container;
+}
+
+/**
+ * НОВОЕ: Обновить отображение ячейки в модале если есть множественные артикулы
+ */
+function displayArticlesWithValidation(cellId, cell) {
+    const articlesContainer = document.getElementById('articles-container');
+    if (!articlesContainer) return;
+
+    let html = '';
+
+    // ОШИБКА: Множественные артикулы
+    if (cell.hasMultipleArticles || (cell.expectedArticles && cell.expectedArticles.length > 1)) {
+        html += `
+            <div class="modal-articles-error">
+                <div class="modal-articles-error-icon">⚠️</div>
+                <div class="modal-articles-error-title">
+                    ОШИБКА: Несколько артикулов в ячейке!
+                </div>
+                <div class="modal-articles-error-message">
+                    В ячейке <strong>${cellId}</strong> обнаружено 
+                    <strong>${(cell.expectedArticles || []).length} артикулов</strong>.
+                    <br>В одной ячейке может быть только один артикул.
+                    <br><strong style="color: #dc2626;">Требуется исправить XLS файл!</strong>
+                </div>
+                <ul class="modal-articles-error-list">
+        `;
+
+        for (const article of (cell.expectedArticles || [])) {
+            html += `<li><strong>${article.sku}</strong> (${article.qty} шт.)</li>`;
+        }
+
+        html += `
+                </ul>
+            </div>
+        `;
+    }
+
+    // Нормальное отображение артикулов
+    if (cell.expectedArticles && cell.expectedArticles.length === 1) {
+        const article = cell.expectedArticles[0];
+        html += `
+            <div class="articles-section">
+                <div class="articles-count">
+                    📦 Артикул: <strong>${article.sku}</strong>
+                </div>
+                <div class="article-item">
+                    <div class="article-code">${article.sku}</div>
+                    <div class="article-qty">${article.qty} шт.</div>
+                </div>
+                <div class="articles-validation-status ok">
+                    ✅ Артикул заполнен корректно
+                </div>
+            </div>
+        `;
+    } else if (!cell.expectedArticles || cell.expectedArticles.length === 0) {
+        html += `
+            <div class="articles-section">
+                <div class="articles-empty">
+                    📭 Информация об артикулах отсутствует
+                </div>
+            </div>
+        `;
+    }
+
+    articlesContainer.innerHTML = html;
+}
+
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+
+/**
+ * Прочитать XLS файл
+ */
+async function readXLSFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                resolve(jsonData);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        
+        reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+/**
+ * Применить данные WMS к warehouse
+ */
+function applyWMSDataToWarehouse(cellsData) {
+    if (!cellsData || !warehousesData) return;
+
+    for (const [cellId, cellData] of Object.entries(cellsData)) {
+        const [alley, section, tier, position] = cellId.split('-');
+
+        if (warehousesData[alley] && warehousesData[alley][section]) {
+            const cell = warehousesData[alley][section].cells.find(c => c.id === cellId);
+            if (cell) {
+                cell.systemStatus = cellData.systemStatus;
+                cell.expectedArticles = cellData.expectedArticles;
+                cell.articlesCount = cellData.articlesCount;
+                cell.hasMultipleArticles = cellData.hasMultipleArticles;
+                cell.articlesError = cellData.articlesError;
+            }
+        }
+    }
+
+    saveData();
+    updateOverviewDisplay();
+}
+
+/**
+ * Показать ошибку XLS
+ */
+function showXLSError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 15px 20px;
+        border-radius: 6px;
+        border-left: 4px solid #ef4444;
+        z-index: 10000;
+        font-weight: 600;
+        max-width: 400px;
+    `;
+    errorDiv.innerHTML = `❌ ${message}`;
+    document.body.appendChild(errorDiv);
+
+    setTimeout(() => errorDiv.remove(), 5000);
+}
+
+/**
+ * НОВОЕ: Скачать шаблон XLS
+ */
+function downloadXLSTemplate() {
+    const template = [
+        {
+            'Название Ячейки': 'A01-01-01-A',
+            'Статус': 'occupied',
+            'Артикул': 'SKU-001',
+            'Кол-во': '5',
+            'Описание': 'Винты М5'
+        },
+        {
+            'Название Ячейки': 'A01-01-02-A',
+            'Статус': 'occupied',
+            'Артикул': 'SKU-002',
+            'Кол-во': '3',
+            'Описание': 'Гайки'
+        },
+        {
+            'Название Ячейки': 'A01-01-03-A',
+            'Статус': 'empty',
+            'Артикул': '',
+            'Кол-во': '',
+            'Описание': ''
+        }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'WMS Data');
+    XLSX.writeFile(wb, 'WMS_Template.xlsx');
+
+    console.log('📥 Шаблон XLS скачан');
+}
+
+/**
+ * НОВОЕ: Перехватить функцию updateCellStatus для проверки артикулов
+ */
+const originalUpdateCellStatus = window.updateCellStatus;
+
+function updateCellStatus(status) {
+    const cellId = selectedCell.id;
+    const cell = getCurrentCell(cellId);
+
+    if (!cell) {
+        console.error('❌ Ячейка не найдена:', cellId);
+        return;
+    }
+
+    // Проверить множественные артикулы
+    if (cell.hasMultipleArticles) {
+        const confirmed = confirm(
+            `⚠️ ВНИМАНИЕ!\n\n` +
+            `В ячейке ${cellId} обнаружено несколько артикулов.\n` +
+            `В одной ячейке может быть только ОДИН артикул.\n\n` +
+            `Требуется исправить XLS файл.\n\n` +
+            `Вы уверены, что хотите продолжить?`
+        );
+
+        if (!confirmed) {
+            console.log('❌ Проверка отменена');
+            return;
+        }
+    }
+
+    // Вызвать оригинальную функцию
+    if (originalUpdateCellStatus) {
+        originalUpdateCellStatus(status);
+    } else {
+        // Fallback
+        cell.actualStatus = status;
+        cell.checked = true;
+        cell.checkTime = new Date().toISOString();
+        cell.operator = currentOperator || 'unknown';
+        saveData();
+        closeModal();
+    }
+}
 
 // ========== 1. ИНИЦИАЛИЗАЦИЯ СИНХРОНИЗАЦИИ ==========
 let syncManager = null;
