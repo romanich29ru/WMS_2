@@ -1,0 +1,2217 @@
+{
+  "file": "Занято-Свободно2.xlsx",
+  "detected": {
+    "name_candidates": [
+      1,
+      2,
+      6
+    ],
+    "status_col": 7,
+    "articles_col": 9
+  },
+  "summary": {
+    "total": 13723,
+    "noArticles": 5190,
+    "needsAttention": 1156
+  },
+  "preview_rows": [
+    {
+      "row": 2,
+      "cell_name_raw": null,
+      "cell_name_tokens": [],
+      "status_raw": null,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 3,
+      "cell_name_raw": "OSNA002010049",
+      "cell_name_tokens": [
+        "OSNA002010049"
+      ],
+      "status_raw": 5460,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 4,
+      "cell_name_raw": "OSNA002010050",
+      "cell_name_tokens": [
+        "OSNA002010050"
+      ],
+      "status_raw": 5461,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 5,
+      "cell_name_raw": "OSNA002010051",
+      "cell_name_tokens": [
+        "OSNA002010051"
+      ],
+      "status_raw": 5462,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 6,
+      "cell_name_raw": "OSNA002011049",
+      "cell_name_tokens": [
+        "OSNA002011049"
+      ],
+      "status_raw": 5511,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 7,
+      "cell_name_raw": "OSNA002011050",
+      "cell_name_tokens": [
+        "OSNA002011050"
+      ],
+      "status_raw": 5512,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 8,
+      "cell_name_raw": "OSNA002011051",
+      "cell_name_tokens": [
+        "OSNA002011051"
+      ],
+      "status_raw": 5513,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 9,
+      "cell_name_raw": "OSNA002012049",
+      "cell_name_tokens": [
+        "OSNA002012049"
+      ],
+      "status_raw": 5562,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 10,
+      "cell_name_raw": "OSNA002012050",
+      "cell_name_tokens": [
+        "OSNA002012050"
+      ],
+      "status_raw": 5563,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 11,
+      "cell_name_raw": "OSNA002012051",
+      "cell_name_tokens": [
+        "OSNA002012051"
+      ],
+      "status_raw": 5564,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 12,
+      "cell_name_raw": "OSNA002013049",
+      "cell_name_tokens": [
+        "OSNA002013049"
+      ],
+      "status_raw": 5613,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 13,
+      "cell_name_raw": "OSNA002013050",
+      "cell_name_tokens": [
+        "OSNA002013050"
+      ],
+      "status_raw": 5614,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 14,
+      "cell_name_raw": "OSNA002013051",
+      "cell_name_tokens": [
+        "OSNA002013051"
+      ],
+      "status_raw": 5615,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 15,
+      "cell_name_raw": "OSNA002014049",
+      "cell_name_tokens": [
+        "OSNA002014049"
+      ],
+      "status_raw": 5664,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 16,
+      "cell_name_raw": "OSNA002014050",
+      "cell_name_tokens": [
+        "OSNA002014050"
+      ],
+      "status_raw": 5665,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 17,
+      "cell_name_raw": "OSNA002014051",
+      "cell_name_tokens": [
+        "OSNA002014051"
+      ],
+      "status_raw": 5666,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 18,
+      "cell_name_raw": "OSNA002015049",
+      "cell_name_tokens": [
+        "OSNA002015049"
+      ],
+      "status_raw": 5715,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 19,
+      "cell_name_raw": "OSNA002015050",
+      "cell_name_tokens": [
+        "OSNA002015050"
+      ],
+      "status_raw": 5716,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 20,
+      "cell_name_raw": "OSNA002015051",
+      "cell_name_tokens": [
+        "OSNA002015051"
+      ],
+      "status_raw": 5717,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 21,
+      "cell_name_raw": "OSNA009015037",
+      "cell_name_tokens": [
+        "OSNA009015037"
+      ],
+      "status_raw": 3561,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 22,
+      "cell_name_raw": "OSNA009015038",
+      "cell_name_tokens": [
+        "OSNA009015038"
+      ],
+      "status_raw": 3562,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 23,
+      "cell_name_raw": "OSNA009015039",
+      "cell_name_tokens": [
+        "OSNA009015039"
+      ],
+      "status_raw": 3563,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 24,
+      "cell_name_raw": "OSNA009015040",
+      "cell_name_tokens": [
+        "OSNA009015040"
+      ],
+      "status_raw": 3564,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 25,
+      "cell_name_raw": "OSNA009015041",
+      "cell_name_tokens": [
+        "OSNA009015041"
+      ],
+      "status_raw": 3565,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 26,
+      "cell_name_raw": "OSNA009015042",
+      "cell_name_tokens": [
+        "OSNA009015042"
+      ],
+      "status_raw": 3566,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 27,
+      "cell_name_raw": "OSNA009015043",
+      "cell_name_tokens": [
+        "OSNA009015043"
+      ],
+      "status_raw": 3567,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 28,
+      "cell_name_raw": "OSNA009015044",
+      "cell_name_tokens": [
+        "OSNA009015044"
+      ],
+      "status_raw": 3568,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 29,
+      "cell_name_raw": "OSNA009015045",
+      "cell_name_tokens": [
+        "OSNA009015045"
+      ],
+      "status_raw": 3569,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 30,
+      "cell_name_raw": "OSNA009015046",
+      "cell_name_tokens": [
+        "OSNA009015046"
+      ],
+      "status_raw": 3570,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 31,
+      "cell_name_raw": "OSNA009015047",
+      "cell_name_tokens": [
+        "OSNA009015047"
+      ],
+      "status_raw": 3571,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 32,
+      "cell_name_raw": "OSNA009015048",
+      "cell_name_tokens": [
+        "OSNA009015048"
+      ],
+      "status_raw": 3572,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 33,
+      "cell_name_raw": "OSNA009015049",
+      "cell_name_tokens": [
+        "OSNA009015049"
+      ],
+      "status_raw": 3573,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 34,
+      "cell_name_raw": "OSNA009015050",
+      "cell_name_tokens": [
+        "OSNA009015050"
+      ],
+      "status_raw": 3574,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 35,
+      "cell_name_raw": "OSNA009015051",
+      "cell_name_tokens": [
+        "OSNA009015051"
+      ],
+      "status_raw": 3575,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 36,
+      "cell_name_raw": "OSNA010015001",
+      "cell_name_tokens": [
+        "OSNA010015001"
+      ],
+      "status_raw": 3219,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 37,
+      "cell_name_raw": "OSNA010015002",
+      "cell_name_tokens": [
+        "OSNA010015002"
+      ],
+      "status_raw": 3220,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 38,
+      "cell_name_raw": "OSNA010015003",
+      "cell_name_tokens": [
+        "OSNA010015003"
+      ],
+      "status_raw": 3221,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 39,
+      "cell_name_raw": "OSNA010015004",
+      "cell_name_tokens": [
+        "OSNA010015004"
+      ],
+      "status_raw": 3222,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 40,
+      "cell_name_raw": "OSNA010015005",
+      "cell_name_tokens": [
+        "OSNA010015005"
+      ],
+      "status_raw": 3223,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 41,
+      "cell_name_raw": "OSNA010015006",
+      "cell_name_tokens": [
+        "OSNA010015006"
+      ],
+      "status_raw": 3224,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 42,
+      "cell_name_raw": "OSNA010015007",
+      "cell_name_tokens": [
+        "OSNA010015007"
+      ],
+      "status_raw": 3225,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 43,
+      "cell_name_raw": "OSNA010015008",
+      "cell_name_tokens": [
+        "OSNA010015008"
+      ],
+      "status_raw": 3226,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 44,
+      "cell_name_raw": "OSNA010015009",
+      "cell_name_tokens": [
+        "OSNA010015009"
+      ],
+      "status_raw": 3227,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 45,
+      "cell_name_raw": "OSNA010015010",
+      "cell_name_tokens": [
+        "OSNA010015010"
+      ],
+      "status_raw": 3228,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 46,
+      "cell_name_raw": "OSNA010015011",
+      "cell_name_tokens": [
+        "OSNA010015011"
+      ],
+      "status_raw": 3229,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 47,
+      "cell_name_raw": "OSNA010015012",
+      "cell_name_tokens": [
+        "OSNA010015012"
+      ],
+      "status_raw": 3230,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 48,
+      "cell_name_raw": "OSNA010015013",
+      "cell_name_tokens": [
+        "OSNA010015013"
+      ],
+      "status_raw": 3231,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 49,
+      "cell_name_raw": "OSNA010015014",
+      "cell_name_tokens": [
+        "OSNA010015014"
+      ],
+      "status_raw": 3232,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 50,
+      "cell_name_raw": "OSNA010015015",
+      "cell_name_tokens": [
+        "OSNA010015015"
+      ],
+      "status_raw": 3233,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 51,
+      "cell_name_raw": "OSNA010015016",
+      "cell_name_tokens": [
+        "OSNA010015016"
+      ],
+      "status_raw": 3234,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 52,
+      "cell_name_raw": "OSNA010015017",
+      "cell_name_tokens": [
+        "OSNA010015017"
+      ],
+      "status_raw": 3235,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 53,
+      "cell_name_raw": "OSNA010015018",
+      "cell_name_tokens": [
+        "OSNA010015018"
+      ],
+      "status_raw": 3236,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 54,
+      "cell_name_raw": "OSNA010015019",
+      "cell_name_tokens": [
+        "OSNA010015019"
+      ],
+      "status_raw": 3237,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 55,
+      "cell_name_raw": "OSNA010015020",
+      "cell_name_tokens": [
+        "OSNA010015020"
+      ],
+      "status_raw": 3238,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 56,
+      "cell_name_raw": "OSNA010015021",
+      "cell_name_tokens": [
+        "OSNA010015021"
+      ],
+      "status_raw": 3239,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 57,
+      "cell_name_raw": "OSNA010015022",
+      "cell_name_tokens": [
+        "OSNA010015022"
+      ],
+      "status_raw": 3240,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 58,
+      "cell_name_raw": "OSNA010015023",
+      "cell_name_tokens": [
+        "OSNA010015023"
+      ],
+      "status_raw": 3241,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 59,
+      "cell_name_raw": "OSNA010015024",
+      "cell_name_tokens": [
+        "OSNA010015024"
+      ],
+      "status_raw": 3242,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 60,
+      "cell_name_raw": "OSNA010015025",
+      "cell_name_tokens": [
+        "OSNA010015025"
+      ],
+      "status_raw": 3243,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 61,
+      "cell_name_raw": "OSNA010015026",
+      "cell_name_tokens": [
+        "OSNA010015026"
+      ],
+      "status_raw": 3244,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 62,
+      "cell_name_raw": "OSNA010015027",
+      "cell_name_tokens": [
+        "OSNA010015027"
+      ],
+      "status_raw": 3245,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 63,
+      "cell_name_raw": "OSNA010015028",
+      "cell_name_tokens": [
+        "OSNA010015028"
+      ],
+      "status_raw": 3246,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 64,
+      "cell_name_raw": "OSNA010015029",
+      "cell_name_tokens": [
+        "OSNA010015029"
+      ],
+      "status_raw": 3247,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 65,
+      "cell_name_raw": "OSNA010015030",
+      "cell_name_tokens": [
+        "OSNA010015030"
+      ],
+      "status_raw": 3248,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 66,
+      "cell_name_raw": "OSNA010015031",
+      "cell_name_tokens": [
+        "OSNA010015031"
+      ],
+      "status_raw": 3249,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 67,
+      "cell_name_raw": "OSNA010015032",
+      "cell_name_tokens": [
+        "OSNA010015032"
+      ],
+      "status_raw": 3250,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 68,
+      "cell_name_raw": "OSNA010015033",
+      "cell_name_tokens": [
+        "OSNA010015033"
+      ],
+      "status_raw": 3251,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 69,
+      "cell_name_raw": "OSNA010015034",
+      "cell_name_tokens": [
+        "OSNA010015034"
+      ],
+      "status_raw": 3252,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 70,
+      "cell_name_raw": "OSNA010015035",
+      "cell_name_tokens": [
+        "OSNA010015035"
+      ],
+      "status_raw": 3253,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 71,
+      "cell_name_raw": "OSNA010015036",
+      "cell_name_tokens": [
+        "OSNA010015036"
+      ],
+      "status_raw": 3254,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 72,
+      "cell_name_raw": "OSNA010015037",
+      "cell_name_tokens": [
+        "OSNA010015037"
+      ],
+      "status_raw": 3255,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 73,
+      "cell_name_raw": "OSNA010015038",
+      "cell_name_tokens": [
+        "OSNA010015038"
+      ],
+      "status_raw": 3256,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 74,
+      "cell_name_raw": "OSNA010015039",
+      "cell_name_tokens": [
+        "OSNA010015039"
+      ],
+      "status_raw": 3257,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 75,
+      "cell_name_raw": "OSNA010015040",
+      "cell_name_tokens": [
+        "OSNA010015040"
+      ],
+      "status_raw": 3258,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 76,
+      "cell_name_raw": "OSNA010015041",
+      "cell_name_tokens": [
+        "OSNA010015041"
+      ],
+      "status_raw": 3259,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 77,
+      "cell_name_raw": "OSNA010015042",
+      "cell_name_tokens": [
+        "OSNA010015042"
+      ],
+      "status_raw": 3260,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 78,
+      "cell_name_raw": "OSNA010015043",
+      "cell_name_tokens": [
+        "OSNA010015043"
+      ],
+      "status_raw": 3261,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 79,
+      "cell_name_raw": "OSNA010015044",
+      "cell_name_tokens": [
+        "OSNA010015044"
+      ],
+      "status_raw": 3262,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 80,
+      "cell_name_raw": "OSNA010015045",
+      "cell_name_tokens": [
+        "OSNA010015045"
+      ],
+      "status_raw": 3263,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 81,
+      "cell_name_raw": "OSNA010015046",
+      "cell_name_tokens": [
+        "OSNA010015046"
+      ],
+      "status_raw": 3264,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 82,
+      "cell_name_raw": "OSNA010015047",
+      "cell_name_tokens": [
+        "OSNA010015047"
+      ],
+      "status_raw": 3265,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 83,
+      "cell_name_raw": "OSNA010015048",
+      "cell_name_tokens": [
+        "OSNA010015048"
+      ],
+      "status_raw": 3266,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 84,
+      "cell_name_raw": "OSNA010015049",
+      "cell_name_tokens": [
+        "OSNA010015049"
+      ],
+      "status_raw": 3267,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 85,
+      "cell_name_raw": "OSNA010015050",
+      "cell_name_tokens": [
+        "OSNA010015050"
+      ],
+      "status_raw": 3268,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 86,
+      "cell_name_raw": "OSNA010015051",
+      "cell_name_tokens": [
+        "OSNA010015051"
+      ],
+      "status_raw": 3269,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 87,
+      "cell_name_raw": "OSNA013015001",
+      "cell_name_tokens": [
+        "OSNA013015001"
+      ],
+      "status_raw": 7764,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 88,
+      "cell_name_raw": "OSNA013015002",
+      "cell_name_tokens": [
+        "OSNA013015002"
+      ],
+      "status_raw": 7765,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 89,
+      "cell_name_raw": "OSNA013015003",
+      "cell_name_tokens": [
+        "OSNA013015003"
+      ],
+      "status_raw": 7766,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 90,
+      "cell_name_raw": "OSNA013015004",
+      "cell_name_tokens": [
+        "OSNA013015004"
+      ],
+      "status_raw": 7767,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 91,
+      "cell_name_raw": "OSNA013015005",
+      "cell_name_tokens": [
+        "OSNA013015005"
+      ],
+      "status_raw": 7768,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 92,
+      "cell_name_raw": "OSNA013015006",
+      "cell_name_tokens": [
+        "OSNA013015006"
+      ],
+      "status_raw": 7769,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 93,
+      "cell_name_raw": "OSNA013015007",
+      "cell_name_tokens": [
+        "OSNA013015007"
+      ],
+      "status_raw": 7770,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 94,
+      "cell_name_raw": "OSNA013015008",
+      "cell_name_tokens": [
+        "OSNA013015008"
+      ],
+      "status_raw": 7771,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 95,
+      "cell_name_raw": "OSNA013015009",
+      "cell_name_tokens": [
+        "OSNA013015009"
+      ],
+      "status_raw": 7772,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 96,
+      "cell_name_raw": "OSNA013015010",
+      "cell_name_tokens": [
+        "OSNA013015010"
+      ],
+      "status_raw": 7773,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 97,
+      "cell_name_raw": "OSNA013015011",
+      "cell_name_tokens": [
+        "OSNA013015011"
+      ],
+      "status_raw": 7774,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 98,
+      "cell_name_raw": "OSNA013015012",
+      "cell_name_tokens": [
+        "OSNA013015012"
+      ],
+      "status_raw": 7775,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 99,
+      "cell_name_raw": "OSNA013015013",
+      "cell_name_tokens": [
+        "OSNA013015013"
+      ],
+      "status_raw": 7776,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 100,
+      "cell_name_raw": "OSNA013015014",
+      "cell_name_tokens": [
+        "OSNA013015014"
+      ],
+      "status_raw": 7777,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 101,
+      "cell_name_raw": "OSNA013015015",
+      "cell_name_tokens": [
+        "OSNA013015015"
+      ],
+      "status_raw": 7778,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 102,
+      "cell_name_raw": "OSNA013015016",
+      "cell_name_tokens": [
+        "OSNA013015016"
+      ],
+      "status_raw": 7779,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 103,
+      "cell_name_raw": "OSNA013015017",
+      "cell_name_tokens": [
+        "OSNA013015017"
+      ],
+      "status_raw": 7780,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 104,
+      "cell_name_raw": "OSNA013015018",
+      "cell_name_tokens": [
+        "OSNA013015018"
+      ],
+      "status_raw": 7781,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 105,
+      "cell_name_raw": "OSNA013015019",
+      "cell_name_tokens": [
+        "OSNA013015019"
+      ],
+      "status_raw": 7782,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 106,
+      "cell_name_raw": "OSNA013015020",
+      "cell_name_tokens": [
+        "OSNA013015020"
+      ],
+      "status_raw": 7783,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 107,
+      "cell_name_raw": "OSNA013015021",
+      "cell_name_tokens": [
+        "OSNA013015021"
+      ],
+      "status_raw": 7784,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 108,
+      "cell_name_raw": "OSNA013015022",
+      "cell_name_tokens": [
+        "OSNA013015022"
+      ],
+      "status_raw": 7785,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 109,
+      "cell_name_raw": "OSNA013015023",
+      "cell_name_tokens": [
+        "OSNA013015023"
+      ],
+      "status_raw": 7786,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 110,
+      "cell_name_raw": "OSNA013015024",
+      "cell_name_tokens": [
+        "OSNA013015024"
+      ],
+      "status_raw": 7787,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 111,
+      "cell_name_raw": "OSNA013015025",
+      "cell_name_tokens": [
+        "OSNA013015025"
+      ],
+      "status_raw": 7788,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 112,
+      "cell_name_raw": "OSNA013015026",
+      "cell_name_tokens": [
+        "OSNA013015026"
+      ],
+      "status_raw": 7789,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 113,
+      "cell_name_raw": "OSNA013015027",
+      "cell_name_tokens": [
+        "OSNA013015027"
+      ],
+      "status_raw": 7790,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 114,
+      "cell_name_raw": "OSNA013015028",
+      "cell_name_tokens": [
+        "OSNA013015028"
+      ],
+      "status_raw": 7791,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 115,
+      "cell_name_raw": "OSNA013015029",
+      "cell_name_tokens": [
+        "OSNA013015029"
+      ],
+      "status_raw": 7792,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 116,
+      "cell_name_raw": "OSNA013015030",
+      "cell_name_tokens": [
+        "OSNA013015030"
+      ],
+      "status_raw": 7793,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 117,
+      "cell_name_raw": "OSNA013015031",
+      "cell_name_tokens": [
+        "OSNA013015031"
+      ],
+      "status_raw": 7794,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 118,
+      "cell_name_raw": "OSNA013015032",
+      "cell_name_tokens": [
+        "OSNA013015032"
+      ],
+      "status_raw": 7795,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 119,
+      "cell_name_raw": "OSNA013015033",
+      "cell_name_tokens": [
+        "OSNA013015033"
+      ],
+      "status_raw": 7796,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 120,
+      "cell_name_raw": "OSNA013015034",
+      "cell_name_tokens": [
+        "OSNA013015034"
+      ],
+      "status_raw": 7797,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 121,
+      "cell_name_raw": "OSNA013015035",
+      "cell_name_tokens": [
+        "OSNA013015035"
+      ],
+      "status_raw": 7798,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 122,
+      "cell_name_raw": "OSNA013015036",
+      "cell_name_tokens": [
+        "OSNA013015036"
+      ],
+      "status_raw": 7799,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 123,
+      "cell_name_raw": "OSNA013015037",
+      "cell_name_tokens": [
+        "OSNA013015037"
+      ],
+      "status_raw": 7800,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 124,
+      "cell_name_raw": "OSNA013015038",
+      "cell_name_tokens": [
+        "OSNA013015038"
+      ],
+      "status_raw": 7801,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 125,
+      "cell_name_raw": "OSNA013015039",
+      "cell_name_tokens": [
+        "OSNA013015039"
+      ],
+      "status_raw": 7802,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 126,
+      "cell_name_raw": "OSNA013015040",
+      "cell_name_tokens": [
+        "OSNA013015040"
+      ],
+      "status_raw": 7803,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 127,
+      "cell_name_raw": "OSNA013015041",
+      "cell_name_tokens": [
+        "OSNA013015041"
+      ],
+      "status_raw": 7804,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 128,
+      "cell_name_raw": "OSNA013015042",
+      "cell_name_tokens": [
+        "OSNA013015042"
+      ],
+      "status_raw": 7805,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 129,
+      "cell_name_raw": "OSNA013015043",
+      "cell_name_tokens": [
+        "OSNA013015043"
+      ],
+      "status_raw": 7806,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 130,
+      "cell_name_raw": "OSNA013015044",
+      "cell_name_tokens": [
+        "OSNA013015044"
+      ],
+      "status_raw": 7807,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 131,
+      "cell_name_raw": "OSNA013015045",
+      "cell_name_tokens": [
+        "OSNA013015045"
+      ],
+      "status_raw": 7808,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 132,
+      "cell_name_raw": "OSNA013015046",
+      "cell_name_tokens": [
+        "OSNA013015046"
+      ],
+      "status_raw": 7809,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 133,
+      "cell_name_raw": "OSNA013015047",
+      "cell_name_tokens": [
+        "OSNA013015047"
+      ],
+      "status_raw": 7810,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 134,
+      "cell_name_raw": "OSNA013015048",
+      "cell_name_tokens": [
+        "OSNA013015048"
+      ],
+      "status_raw": 7811,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 135,
+      "cell_name_raw": "OSNA013015049",
+      "cell_name_tokens": [
+        "OSNA013015049"
+      ],
+      "status_raw": 7812,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 136,
+      "cell_name_raw": "OSNA013015050",
+      "cell_name_tokens": [
+        "OSNA013015050"
+      ],
+      "status_raw": 7813,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 137,
+      "cell_name_raw": "OSNA013015051",
+      "cell_name_tokens": [
+        "OSNA013015051"
+      ],
+      "status_raw": 7814,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 138,
+      "cell_name_raw": "OSNA013015052",
+      "cell_name_tokens": [
+        "OSNA013015052"
+      ],
+      "status_raw": 7815,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 139,
+      "cell_name_raw": "OSNA013015053",
+      "cell_name_tokens": [
+        "OSNA013015053"
+      ],
+      "status_raw": 7816,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 140,
+      "cell_name_raw": "OSNA013015054",
+      "cell_name_tokens": [
+        "OSNA013015054"
+      ],
+      "status_raw": 7817,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 141,
+      "cell_name_raw": "OSNA013015055",
+      "cell_name_tokens": [
+        "OSNA013015055"
+      ],
+      "status_raw": 7818,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 142,
+      "cell_name_raw": "OSNA013015056",
+      "cell_name_tokens": [
+        "OSNA013015056"
+      ],
+      "status_raw": 7819,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 143,
+      "cell_name_raw": "OSNA013015057",
+      "cell_name_tokens": [
+        "OSNA013015057"
+      ],
+      "status_raw": 7820,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 144,
+      "cell_name_raw": "OSNA013015058",
+      "cell_name_tokens": [
+        "OSNA013015058"
+      ],
+      "status_raw": 7821,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 145,
+      "cell_name_raw": "OSNA013015059",
+      "cell_name_tokens": [
+        "OSNA013015059"
+      ],
+      "status_raw": 7822,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 146,
+      "cell_name_raw": "OSNA013015060",
+      "cell_name_tokens": [
+        "OSNA013015060"
+      ],
+      "status_raw": 7823,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 147,
+      "cell_name_raw": "OSNA013015061",
+      "cell_name_tokens": [
+        "OSNA013015061"
+      ],
+      "status_raw": 7824,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 148,
+      "cell_name_raw": "OSNA013015062",
+      "cell_name_tokens": [
+        "OSNA013015062"
+      ],
+      "status_raw": 7825,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 149,
+      "cell_name_raw": "OSNA013015063",
+      "cell_name_tokens": [
+        "OSNA013015063"
+      ],
+      "status_raw": 7826,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 150,
+      "cell_name_raw": "OSNA013015064",
+      "cell_name_tokens": [
+        "OSNA013015064"
+      ],
+      "status_raw": 7827,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 151,
+      "cell_name_raw": "OSNA013015065",
+      "cell_name_tokens": [
+        "OSNA013015065"
+      ],
+      "status_raw": 7828,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 152,
+      "cell_name_raw": "OSNA013015066",
+      "cell_name_tokens": [
+        "OSNA013015066"
+      ],
+      "status_raw": 7829,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 153,
+      "cell_name_raw": "OSNA013015067",
+      "cell_name_tokens": [
+        "OSNA013015067"
+      ],
+      "status_raw": 7830,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 154,
+      "cell_name_raw": "OSNA013015068",
+      "cell_name_tokens": [
+        "OSNA013015068"
+      ],
+      "status_raw": 7831,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 155,
+      "cell_name_raw": "OSNA013015069",
+      "cell_name_tokens": [
+        "OSNA013015069"
+      ],
+      "status_raw": 7832,
+      "articles_raw": null,
+      "articles_count": 0,
+      "needsAttention": false
+    },
+    {
+      "row": 156,
+      "cell_name_raw": "OSNA014015001",
+      "cell_name_tokens": [
+        "OSNA014015001"
+      ],
+      "status_raw": 8316,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 157,
+      "cell_name_raw": "OSNA014015002",
+      "cell_name_tokens": [
+        "OSNA014015002"
+      ],
+      "status_raw": 8317,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 158,
+      "cell_name_raw": "OSNA014015003",
+      "cell_name_tokens": [
+        "OSNA014015003"
+      ],
+      "status_raw": 8318,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 159,
+      "cell_name_raw": "OSNA014015004",
+      "cell_name_tokens": [
+        "OSNA014015004"
+      ],
+      "status_raw": 8319,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 160,
+      "cell_name_raw": "OSNA014015005",
+      "cell_name_tokens": [
+        "OSNA014015005"
+      ],
+      "status_raw": 8320,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 161,
+      "cell_name_raw": "OSNA014015006",
+      "cell_name_tokens": [
+        "OSNA014015006"
+      ],
+      "status_raw": 8321,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 162,
+      "cell_name_raw": "OSNA014015007",
+      "cell_name_tokens": [
+        "OSNA014015007"
+      ],
+      "status_raw": 8322,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 163,
+      "cell_name_raw": "OSNA014015008",
+      "cell_name_tokens": [
+        "OSNA014015008"
+      ],
+      "status_raw": 8323,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 164,
+      "cell_name_raw": "OSNA014015009",
+      "cell_name_tokens": [
+        "OSNA014015009"
+      ],
+      "status_raw": 8324,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 165,
+      "cell_name_raw": "OSNA014015010",
+      "cell_name_tokens": [
+        "OSNA014015010"
+      ],
+      "status_raw": 8325,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 166,
+      "cell_name_raw": "OSNA014015011",
+      "cell_name_tokens": [
+        "OSNA014015011"
+      ],
+      "status_raw": 8326,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 167,
+      "cell_name_raw": "OSNA014015012",
+      "cell_name_tokens": [
+        "OSNA014015012"
+      ],
+      "status_raw": 8327,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 168,
+      "cell_name_raw": "OSNA014015013",
+      "cell_name_tokens": [
+        "OSNA014015013"
+      ],
+      "status_raw": 8328,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 169,
+      "cell_name_raw": "OSNA014015014",
+      "cell_name_tokens": [
+        "OSNA014015014"
+      ],
+      "status_raw": 8329,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 170,
+      "cell_name_raw": "OSNA014015015",
+      "cell_name_tokens": [
+        "OSNA014015015"
+      ],
+      "status_raw": 8330,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 171,
+      "cell_name_raw": "OSNA014015016",
+      "cell_name_tokens": [
+        "OSNA014015016"
+      ],
+      "status_raw": 8331,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 172,
+      "cell_name_raw": "OSNA014015017",
+      "cell_name_tokens": [
+        "OSNA014015017"
+      ],
+      "status_raw": 8332,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 173,
+      "cell_name_raw": "OSNA014015018",
+      "cell_name_tokens": [
+        "OSNA014015018"
+      ],
+      "status_raw": 8333,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 174,
+      "cell_name_raw": "OSNA014015019",
+      "cell_name_tokens": [
+        "OSNA014015019"
+      ],
+      "status_raw": 8334,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 175,
+      "cell_name_raw": "OSNA014015020",
+      "cell_name_tokens": [
+        "OSNA014015020"
+      ],
+      "status_raw": 8335,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 176,
+      "cell_name_raw": "OSNA014015021",
+      "cell_name_tokens": [
+        "OSNA014015021"
+      ],
+      "status_raw": 8336,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 177,
+      "cell_name_raw": "OSNA014015022",
+      "cell_name_tokens": [
+        "OSNA014015022"
+      ],
+      "status_raw": 8337,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 178,
+      "cell_name_raw": "OSNA014015023",
+      "cell_name_tokens": [
+        "OSNA014015023"
+      ],
+      "status_raw": 8338,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 179,
+      "cell_name_raw": "OSNA014015024",
+      "cell_name_tokens": [
+        "OSNA014015024"
+      ],
+      "status_raw": 8339,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 180,
+      "cell_name_raw": "OSNA014015025",
+      "cell_name_tokens": [
+        "OSNA014015025"
+      ],
+      "status_raw": 8340,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 181,
+      "cell_name_raw": "OSNA014015026",
+      "cell_name_tokens": [
+        "OSNA014015026"
+      ],
+      "status_raw": 8341,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 182,
+      "cell_name_raw": "OSNA014015027",
+      "cell_name_tokens": [
+        "OSNA014015027"
+      ],
+      "status_raw": 8342,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 183,
+      "cell_name_raw": "OSNA014015028",
+      "cell_name_tokens": [
+        "OSNA014015028"
+      ],
+      "status_raw": 8343,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 184,
+      "cell_name_raw": "OSNA014015029",
+      "cell_name_tokens": [
+        "OSNA014015029"
+      ],
+      "status_raw": 8344,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 185,
+      "cell_name_raw": "OSNA014015030",
+      "cell_name_tokens": [
+        "OSNA014015030"
+      ],
+      "status_raw": 8345,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 186,
+      "cell_name_raw": "OSNA014015031",
+      "cell_name_tokens": [
+        "OSNA014015031"
+      ],
+      "status_raw": 8346,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 187,
+      "cell_name_raw": "OSNA014015032",
+      "cell_name_tokens": [
+        "OSNA014015032"
+      ],
+      "status_raw": 8347,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 188,
+      "cell_name_raw": "OSNA014015033",
+      "cell_name_tokens": [
+        "OSNA014015033"
+      ],
+      "status_raw": 8348,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 189,
+      "cell_name_raw": "OSNA014015034",
+      "cell_name_tokens": [
+        "OSNA014015034"
+      ],
+      "status_raw": 8349,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 190,
+      "cell_name_raw": "OSNA014015035",
+      "cell_name_tokens": [
+        "OSNA014015035"
+      ],
+      "status_raw": 8350,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 191,
+      "cell_name_raw": "OSNA014015036",
+      "cell_name_tokens": [
+        "OSNA014015036"
+      ],
+      "status_raw": 8351,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 192,
+      "cell_name_raw": "OSNA014015037",
+      "cell_name_tokens": [
+        "OSNA014015037"
+      ],
+      "status_raw": 8352,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 193,
+      "cell_name_raw": "OSNA014015038",
+      "cell_name_tokens": [
+        "OSNA014015038"
+      ],
+      "status_raw": 8353,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 194,
+      "cell_name_raw": "OSNA014015039",
+      "cell_name_tokens": [
+        "OSNA014015039"
+      ],
+      "status_raw": 8354,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 195,
+      "cell_name_raw": "OSNA014015040",
+      "cell_name_tokens": [
+        "OSNA014015040"
+      ],
+      "status_raw": 8355,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 196,
+      "cell_name_raw": "OSNA014015041",
+      "cell_name_tokens": [
+        "OSNA014015041"
+      ],
+      "status_raw": 8356,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 197,
+      "cell_name_raw": "OSNA014015042",
+      "cell_name_tokens": [
+        "OSNA014015042"
+      ],
+      "status_raw": 8357,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 198,
+      "cell_name_raw": "OSNA014015043",
+      "cell_name_tokens": [
+        "OSNA014015043"
+      ],
+      "status_raw": 8358,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 199,
+      "cell_name_raw": "OSNA014015044",
+      "cell_name_tokens": [
+        "OSNA014015044"
+      ],
+      "status_raw": 8359,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 200,
+      "cell_name_raw": "OSNA014015045",
+      "cell_name_tokens": [
+        "OSNA014015045"
+      ],
+      "status_raw": 8360,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    },
+    {
+      "row": 201,
+      "cell_name_raw": "OSNA014015046",
+      "cell_name_tokens": [
+        "OSNA014015046"
+      ],
+      "status_raw": 8361,
+      "articles_raw": "Короб палетный 30",
+      "articles_count": 3,
+      "needsAttention": true
+    }
+  ]
+}

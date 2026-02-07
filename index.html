@@ -2353,6 +2353,7 @@
             let alleyIndex = -1;
             let articlesIndex = -1;
 
+            // Step 1: Detect header row and columns by name
             for (let i = 0; i < Math.min(5, xlsData.length); i++) {
                 const row = xlsData[i];
                 if (Array.isArray(row)) {
@@ -2373,16 +2374,69 @@
                         }
                     }
 
-                    if (cellNameIndex !== -1 && statusIndex !== -1) {
+                    if (cellNameIndex !== -1) {
                         headerRow = i;
                         break;
                     }
                 }
             }
 
-            if (cellNameIndex === -1 || statusIndex === -1) {
-                throw new Error('Не найдены колонки "Название Ячейки" и "Статус"');
+            if (cellNameIndex === -1) {
+                throw new Error('Не найдена колонка "Название Ячейки"');
             }
+
+            // Step 2: If status by header not found, scan first 100 rows to detect status column by value keywords
+            if (statusIndex === -1 && headerRow !== null) {
+                const statusKeywords = ['свободна', 'занято', 'занята', 'occupied', 'empty', 'vacant', 'пусто'];
+                const colScores = {};
+                for (let i = (headerRow || 0) + 1; i < Math.min((headerRow || 0) + 101, xlsData.length); i++) {
+                    const row = xlsData[i];
+                    if (!Array.isArray(row)) continue;
+                    for (let j = 0; j < row.length; j++) {
+                        const val = String(row[j] || '').toLowerCase();
+                        for (const kw of statusKeywords) {
+                            if (val.includes(kw)) {
+                                colScores[j] = (colScores[j] || 0) + 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (Object.keys(colScores).length > 0) {
+                    statusIndex = Object.keys(colScores).reduce((a, b) => colScores[a] > colScores[b] ? a : b);
+                    console.log(`[Auto-detect] Status column: ${statusIndex}`);
+                }
+            }
+
+            // Step 3: If articles column not found by header, scan for SKU-like values
+            if (articlesIndex === -1 && headerRow !== null) {
+                const colScores = {};
+                for (let i = (headerRow || 0) + 1; i < Math.min((headerRow || 0) + 101, xlsData.length); i++) {
+                    const row = xlsData[i];
+                    if (!Array.isArray(row)) continue;
+                    for (let j = 0; j < row.length; j++) {
+                        if (j === cellNameIndex || j === statusIndex) continue; // skip name and status cols
+                        const val = String(row[j] || '').trim();
+                        if (!val) continue;
+                        // score SKU-like: contains comma/semicolon, or multiple digit-tokens
+                        let score = 0;
+                        if (val.includes(',') || val.includes(';')) score += 3;
+                        const toks = val.split(/[\s,;]+/).filter(t => t.length > 0);
+                        for (const tok of toks) {
+                            if (/^[0-9_\-]{3,}$/.test(tok) || /^[A-Z0-9_]{5,}$/i.test(tok)) score++;
+                        }
+                        if (score > 0) {
+                            colScores[j] = (colScores[j] || 0) + score;
+                        }
+                    }
+                }
+                if (Object.keys(colScores).length > 0) {
+                    articlesIndex = Object.keys(colScores).reduce((a, b) => colScores[a] > colScores[b] ? a : b);
+                    console.log(`[Auto-detect] Articles column: ${articlesIndex}`);
+                }
+            }
+
+            console.log(`Detected indexes: cellName=${cellNameIndex}, status=${statusIndex}, articles=${articlesIndex}, alley=${alleyIndex}`);
 
             for (let i = (headerRow || 0) + 1; i < xlsData.length; i++) {
                 const row = xlsData[i];
@@ -2391,20 +2445,25 @@
                 totalRows++;
 
                 try {
+                    if (statusIndex === -1) {
+                        errors.push(`Строка ${i+1}: статус не найден (колонка не определена)`);
+                        continue;
+                    }
+
                     const cellName = String(row[cellNameIndex] || '').trim();
                     const status = String(row[statusIndex] || '').trim();
                     const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
                     const articlesRaw = articlesIndex !== -1 ? String(row[articlesIndex] || '').trim() : '';
 
                     if (!cellName || !status) {
-                        errors.push(`Строка ${i+1}: пропущены данные`);
+                        errors.push(`Строка ${i+1}: пропущены cellName или status`);
                         continue;
                     }
 
                     const parsedCell = parseCellName(cellName, alley);
 
                     if (!parsedCell) {
-                        errors.push(`Строка ${i+1}: неверный формат: ${cellName}`);
+                        errors.push(`Строка ${i+1}: неверный формат адреса: ${cellName}`);
                         continue;
                     }
 
@@ -2414,19 +2473,25 @@
                     // Parse articles list (comma/semicolon/space separated) and count
                     let parsedArticles = [];
                     if (articlesRaw) {
-                        parsedArticles = articlesRaw.split(/[;,\/\\\|\s]+/).map(a => a.trim()).filter(a => a.length > 0);
+                        // Split on common delimiters and filter:
+                        parsedArticles = articlesRaw
+                            .split(/[;,\/\\\|\s]+/)
+                            .map(a => a.trim())
+                            .filter(a => a.length > 1); // skip single-char tokens
                     }
                     const articlesCount = parsedArticles.length;
+                    const needsAttention = articlesCount >= 2; // Mark for physical verification if 2+ articles
 
                     processedData[cellId] = {
                         cellId: cellId,
                         systemStatus: systemStatus,
                         parsedData: parsedCell,
                         parsedArticles: parsedArticles,
-                        articlesCount: articlesCount
+                        articlesCount: articlesCount,
+                        needsAttention: needsAttention
                     };
 
-                    console.log(`Row ${i}: cellName="${cellName}" → cellId="${cellId}", status="${status}" → systemStatus="${systemStatus}"`);
+                    console.log(`Row ${i}: cellName="${cellName}" → cellId="${cellId}", status="${status}" → systemStatus="${systemStatus}", articles=${articlesCount}, needsAttention=${needsAttention}`);
                     validRows++;
 
                 } catch (error) {

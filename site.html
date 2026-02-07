@@ -1,0 +1,3741 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="description" content="Система проверки складских ячеек">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Система проверки склада v2.0</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #9b59b6;
+            --light-color: #ecf0f1;
+            --dark-color: #34495e;
+            --text-color: #333;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --transition: all 0.3s ease;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            color: var(--text-color);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ========== PWA Install Banner ========== */
+        .pwa-install-banner {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            z-index: 5000;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .pwa-install-banner.show {
+            display: flex;
+        }
+
+        .pwa-install-text {
+            flex: 1;
+        }
+
+        .pwa-install-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .pwa-install-desc {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .pwa-install-btn {
+            background: white;
+            color: var(--primary-color);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .pwa-close-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        /* ========== Offline indicator ========== */
+        .offline-indicator {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--warning-color);
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-weight: 600;
+            z-index: 6000;
+        }
+
+        .offline-indicator.show {
+            display: block;
+        }
+
+        /* ========== РЕЖИМ ОБЩЕГО ОБЗОРА ========== */
+        .overview-mode {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-panel {
+            background-color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #e1e8ed;
+            flex-shrink: 0;
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .app-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .version-badge {
+            font-size: 0.7rem;
+            background: var(--secondary-color);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        /* Articles count badge on cell */
+        .cell-articles-badge {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            border-radius: 10px;
+            z-index: 5;
+            font-weight: 700;
+        }
+
+        .cell-articles-badge.attention {
+            background: var(--warning-color);
+            color: #1a1a1a;
+        }
+
+        .operator-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .operator-name {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        /* ========== ПОИСК ========== */
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 2px solid #e1e8ed;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #95a5a6;
+            font-size: 1.1rem;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 14px;
+            border: 2px solid #e1e8ed;
+            border-radius: var(--border-radius);
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .filter-btn.active {
+            background: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: white;
+        }
+
+        .filter-btn.filter-discrepancy.active {
+            background: var(--warning-color);
+            border-color: var(--warning-color);
+        }
+
+        .filter-btn.filter-problem.active {
+            background: var(--info-color);
+            border-color: var(--info-color);
+        }
+
+        .filter-btn.filter-unchecked.active {
+            background: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        /* Search results dropdown */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .search-results.show {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f1f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-result-item:hover {
+            background: #f8fafc;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-address {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .search-result-status {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .search-result-status.empty { background: #e8f5e9; color: #2e7d32; }
+        .search-result-status.occupied { background: #fff3e0; color: #ef6c00; }
+        .search-result-status.discrepancy { background: #fff8e1; color: #f9a825; }
+        .search-result-status.problem { background: #f3e5f5; color: #7b1fa2; }
+
+        .control-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .alley-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alley-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            white-space: nowrap;
+        }
+
+        .alley-dropdown {
+            padding: 10px 15px;
+            border: 2px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+            background-color: white;
+            font-weight: 600;
+            color: var(--primary-color);
+            min-width: 120px;
+            cursor: pointer;
+        }
+
+        .alley-dropdown:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .global-stats {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: #f8fafc;
+            border-radius: var(--border-radius);
+            min-width: 100px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .total-stat .stat-value { color: var(--secondary-color); }
+        .checked-stat .stat-value { color: var(--success-color); }
+        .discrepancy-stat .stat-value { color: var(--warning-color); }
+        .problem-stat .stat-value { color: var(--info-color); }
+
+        /* Кнопки управления */
+        .control-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .control-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .start-inspection-btn {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .start-inspection-btn:hover {
+            background-color: #219653;
+            transform: translateY(-2px);
+        }
+
+        .import-btn {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .import-btn:hover {
+            background-color: #8e44ad;
+            transform: translateY(-2px);
+        }
+
+        .export-btn {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .export-btn:hover {
+            background-color: #e67e22;
+            transform: translateY(-2px);
+        }
+
+        .history-btn {
+            background-color: var(--dark-color);
+            color: white;
+        }
+
+        .history-btn:hover {
+            background-color: #2c3e50;
+            transform: translateY(-2px);
+        }
+
+        /* Обзор секций */
+        .sections-overview {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f8fafc;
+        }
+
+        .overview-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .section-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-card.active {
+            border-color: var(--secondary-color);
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .section-card.filtered-out {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .section-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .section-card-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .section-card-status {
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .status-not-started { background-color: #e2e8f0; color: #475569; }
+        .status-in-progress { background-color: #dbeafe; color: #1e40af; }
+        .status-completed { background-color: #dcfce7; color: #166534; }
+        .status-with-issues { background-color: #fef3c7; color: #92400e; }
+
+        .section-card-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+
+        .section-card-stat {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .section-card-stat-label {
+            color: #64748b;
+        }
+
+        .section-card-stat-value {
+            font-weight: 600;
+        }
+
+        .section-card-progress {
+            height: 6px;
+            background-color: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .section-card-progress-fill {
+            height: 100%;
+            background-color: var(--success-color);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        /* ========== РЕЖИМ ПРОВЕРКИ НА ВЕСЬ ЭКРАН ========== */
+        .inspection-mode {
+            height: 100vh;
+            width: 100vw;
+            display: none;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: white;
+            z-index: 1000;
+        }
+
+        .inspection-header {
+            padding: 15px;
+            background-color: white;
+            border-bottom: 1px solid #e1e8ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .inspection-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .exit-inspection-btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .exit-inspection-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* Контейнер карусели */
+        .inspection-carousel-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .inspection-sections-carousel {
+            display: flex;
+            height: 100%;
+            transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+            will-change: transform;
+        }
+
+        .inspection-section-slide {
+            flex: 0 0 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .inspection-section-header {
+            padding: 12px 15px;
+            background-color: white;
+            border-bottom: 1px solid #e1e8ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .inspection-section-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .inspection-section-counter {
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .inspection-rack-container {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .inspection-rack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .inspection-tier-row {
+            display: flex;
+            margin-bottom: 4px;
+            width: 100%;
+        }
+
+        .inspection-tier-label {
+            width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .inspection-cells-container {
+            display: flex;
+            flex: 1;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .inspection-cell {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .inspection-cell:active {
+            transform: scale(0.95);
+        }
+
+        .inspection-cell-address {
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+        }
+
+        .inspection-cell-position {
+            font-size: 0.7rem;
+            color: #777;
+        }
+
+        .inspection-cell-photo-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.6rem;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+
+        /* Цвета состояний ячеек */
+        .inspection-cell-unchecked {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .inspection-cell-checked-empty {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .inspection-cell-discrepancy {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .inspection-cell-problem {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .inspection-cell-skipped {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* Выделение зон */
+        .inspection-tier-picking {
+            background-color: rgba(231, 76, 60, 0.05);
+        }
+
+        .inspection-tier-upper {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .inspection-tier-label.picking {
+            color: var(--danger-color);
+        }
+
+        .inspection-tier-label.upper {
+            color: var(--secondary-color);
+        }
+
+        /* Индикаторы свайпа */
+        .swipe-indicators {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .swipe-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .swipe-indicator.active {
+            background-color: var(--secondary-color);
+            transform: scale(1.3);
+        }
+
+        .swipe-hint {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--secondary-color);
+            font-size: 0.8rem;
+            font-weight: 600;
+            opacity: 0;
+            animation: fadeInOut 3s ease-in-out 1s 3;
+        }
+
+        .swipe-hint.hidden {
+            display: none;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Навигационные стрелки (только для десктопа) */
+        .carousel-nav {
+            display: none;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(52, 152, 219, 0.9);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 10;
+            transition: var(--transition);
+        }
+
+        .carousel-nav:hover {
+            background-color: rgba(52, 152, 219, 1);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .carousel-nav.prev {
+            left: 15px;
+        }
+
+        .carousel-nav.next {
+            right: 15px;
+        }
+
+        /* ========== МОДАЛЬНОЕ ОКНО ========== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .modal-address {
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+            font-size: 1rem;
+            text-align: center;
+            padding: 10px;
+            background-color: #f8fafc;
+            border-radius: var(--border-radius);
+        }
+
+        .modal-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-option {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .modal-option:hover {
+            transform: translateX(3px);
+        }
+
+        .modal-option.empty {
+            border-color: var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        .modal-option.occupied {
+            border-color: var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .modal-option.problem {
+            border-color: var(--info-color);
+            color: var(--info-color);
+        }
+
+        .modal-option.skip {
+            border-color: #95a5a6;
+            color: #95a5a6;
+        }
+
+        .option-icon {
+            margin-right: 8px;
+            font-size: 1rem;
+        }
+
+        /* Фото секция в модальном окне */
+        .modal-photo-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: var(--border-radius);
+        }
+
+        .modal-photo-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .photo-preview-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .photo-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 6px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid #ddd;
+        }
+
+        .photo-preview:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .photo-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .photo-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px dashed var(--secondary-color);
+            border-radius: var(--border-radius);
+            background: white;
+            color: var(--secondary-color);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+
+        .photo-btn:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .modal-cancel {
+            background-color: #95a5a6;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* ========== МОДАЛЬНОЕ ОКНО ИСТОРИИ ========== */
+        .history-modal {
+            max-width: 600px;
+        }
+
+        .history-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .history-filter-input {
+            flex: 1;
+            min-width: 150px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 12px;
+            border-bottom: 1px solid #f1f1f1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item-cell {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .history-item-time {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .history-item-details {
+            display: flex;
+            gap: 10px;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .history-item-status {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .history-item-operator {
+            color: #64748b;
+        }
+
+        .history-item-photo {
+            color: var(--info-color);
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .history-export-btn {
+            width: 100%;
+            margin-top: 15px;
+            padding: 12px;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ========== МОДАЛЬНОЕ ОКНО ПРОСМОТРА ФОТО ========== */
+        .photo-viewer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .photo-viewer-overlay.show {
+            display: flex;
+        }
+
+        .photo-viewer-img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .photo-viewer-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .photo-viewer-delete {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Уведомление */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            color: white;
+            font-weight: 600;
+            z-index: 3000;
+            transform: translateX(150%);
+            transition: transform 0.5s ease;
+            max-width: 300px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background-color: var(--success-color);
+        }
+
+        .notification.warning {
+            background-color: var(--warning-color);
+        }
+
+        .notification.info {
+            background-color: var(--info-color);
+        }
+
+        .notification.error {
+            background-color: var(--danger-color);
+        }
+
+        /* Модальное окно импорта */
+        .import-modal {
+            max-width: 500px;
+        }
+
+        .import-content {
+            margin: 20px 0;
+        }
+
+        .import-dropzone {
+            border: 2px dashed #3498db;
+            border-radius: var(--border-radius);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 20px;
+        }
+
+        .import-dropzone:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .import-dropzone.dragover {
+            border-color: var(--success-color);
+            background-color: rgba(39, 174, 96, 0.1);
+        }
+
+        .import-dropzone-icon {
+            font-size: 3rem;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .import-dropzone-text {
+            font-size: 1rem;
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+
+        .import-dropzone-hint {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        .import-file-input {
+            display: none;
+        }
+
+        .import-file-name {
+            padding: 10px;
+            background-color: #f8fafc;
+            border-radius: var(--border-radius);
+            margin: 10px 0;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .import-file-name.show {
+            display: flex;
+        }
+
+        .import-progress {
+            width: 100%;
+            height: 10px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .import-progress.show {
+            display: block;
+        }
+
+        .import-progress-bar {
+            height: 100%;
+            background-color: var(--success-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .modal-buttons-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .modal-btn.primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .modal-btn.success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        /* Статус импорта */
+        .import-status {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8fafc;
+            border-radius: var(--border-radius);
+            display: none;
+        }
+
+        .import-status.show {
+            display: block;
+        }
+
+        .import-status-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .import-status-list {
+            list-style: none;
+        }
+
+        .import-status-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .import-status-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Адаптивность */
+        @media (min-width: 768px) {
+            .carousel-nav {
+                display: block;
+            }
+
+            .inspection-cell {
+                width: 70px;
+                height: 70px;
+            }
+
+            .inspection-rack {
+                max-width: 600px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .inspection-cell {
+                width: 50px;
+                height: 50px;
+            }
+
+            .inspection-cell-address {
+                font-size: 0.7rem;
+            }
+
+            .inspection-tier-label {
+                width: 40px;
+                font-size: 0.8rem;
+            }
+
+            .control-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .global-stats {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .stat-item {
+                min-width: 80px;
+                padding: 6px 8px;
+            }
+
+            .sections-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .control-buttons {
+                flex-direction: column;
+            }
+
+            .control-btn {
+                width: 100%;
+            }
+
+            .filter-buttons {
+                width: 100%;
+            }
+
+            .filter-btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Offline indicator -->
+    <div class="offline-indicator" id="offline-indicator">
+        Нет подключения к интернету. Данные сохраняются локально.
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div class="pwa-install-banner" id="pwa-install-banner">
+        <div class="pwa-install-text">
+            <div class="pwa-install-title">Установить приложение</div>
+            <div class="pwa-install-desc">Работайте офлайн прямо с главного экрана</div>
+        </div>
+        <button class="pwa-install-btn" id="pwa-install-btn">Установить</button>
+        <button class="pwa-close-btn" id="pwa-close-btn">&times;</button>
+    </div>
+
+    <!-- РЕЖИМ ОБЩЕГО ОБЗОРА -->
+    <div class="overview-mode" id="overview-mode">
+        <!-- Панель управления -->
+        <div class="control-panel">
+            <div class="control-header">
+                <h1 class="app-title">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    Проверка склада
+                    <span class="version-badge" id="version-badge">v2.0 • build 654d3d0</span>
+                </h1>
+                <div class="operator-info">
+                    <input type="text" id="operator-name" class="operator-name" placeholder="Имя оператора" maxlength="50">
+                </div>
+            </div>
+
+            <!-- Поиск и фильтры -->
+            <div class="search-container">
+                <div class="search-input-wrapper">
+                    <span class="search-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </span>
+                    <input type="text" id="search-input" class="search-input" placeholder="Поиск ячейки (например: A01-05-11-B)">
+                    <div class="search-results" id="search-results"></div>
+                </div>
+                <div class="filter-buttons">
+                    <button class="filter-btn filter-all active" data-filter="all">Все</button>
+                    <button class="filter-btn filter-unchecked" data-filter="unchecked">Не проверены</button>
+                    <button class="filter-btn filter-discrepancy" data-filter="discrepancy">Расхождения</button>
+                    <button class="filter-btn filter-problem" data-filter="problem">Проблемы</button>
+                </div>
+            </div>
+
+            <div class="control-content">
+                <div class="alley-selector">
+                    <span class="alley-label">Аллея:</span>
+                    <select id="alley-select" class="alley-dropdown">
+                        <!-- Заполнится через JS -->
+                    </select>
+                </div>
+                <div class="global-stats">
+                    <div class="stat-item total-stat">
+                        <span class="stat-label">Всего</span>
+                        <span class="stat-value" id="total-cells">0</span>
+                    </div>
+                    <div class="stat-item checked-stat">
+                        <span class="stat-label">Проверено</span>
+                        <span class="stat-value" id="checked-cells">0</span>
+                    </div>
+                    <div class="stat-item discrepancy-stat">
+                        <span class="stat-label">Расхождения</span>
+                        <span class="stat-value" id="discrepancy-cells">0</span>
+                    </div>
+                    <div class="stat-item problem-stat">
+                        <span class="stat-label">Проблемы</span>
+                        <span class="stat-value" id="problem-cells">0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="control-buttons">
+                <button class="control-btn start-inspection-btn" id="start-inspection-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Начать проверку
+                </button>
+                <button class="control-btn import-btn" id="import-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Загрузить XLS
+                </button>
+                <button class="control-btn export-btn" id="export-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Экспорт CSV
+                </button>
+                <button class="control-btn history-btn" id="history-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    История
+                </button>
+                <button class="control-btn" id="reset-inspection-btn" title="Сброс выполнения проверки">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><path d="M21 12a9 9 0 1 1-3.36-6.36L21 12z"/></svg>
+                    Сброс проверки
+                </button>
+            </div>
+        </div>
+
+        <!-- Обзор секций -->
+        <div class="sections-overview">
+            <h2 class="overview-title" id="overview-alley-title">Аллея A01 - Секции</h2>
+            <div class="sections-grid" id="sections-grid">
+                <!-- Карточки секций будут добавлены через JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- РЕЖИМ ПРОВЕРКИ НА ВЕСЬ ЭКРАН -->
+    <div class="inspection-mode" id="inspection-mode">
+        <div class="inspection-header">
+            <div class="inspection-title" id="inspection-alley-title">Аллея A01 - Проверка</div>
+            <button class="exit-inspection-btn" id="exit-inspection-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 5px;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Завершить
+            </button>
+        </div>
+
+        <div class="inspection-carousel-container" id="carousel-container">
+            <div class="inspection-sections-carousel" id="sections-carousel"></div>
+            <button class="carousel-nav prev" id="carousel-prev">&#8249;</button>
+            <button class="carousel-nav next" id="carousel-next">&#8250;</button>
+            <div class="swipe-indicators" id="swipe-indicators"></div>
+            <div class="swipe-hint" id="swipe-hint">Свайпните влево или вправо для навигации</div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для выбора состояния ячейки -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <h3 class="modal-title">Состояние ячейки</h3>
+            <div class="modal-address" id="modal-address">A01-01-01-A</div>
+
+            <!-- Секция фото -->
+            <div class="modal-photo-section">
+                <div class="modal-photo-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 5px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Фото ячейки
+                </div>
+                <div class="photo-preview-container" id="photo-preview-container">
+                    <!-- Превью фото будут здесь -->
+                </div>
+                <div class="photo-buttons">
+                    <button class="photo-btn" id="take-photo-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Сделать фото
+                    </button>
+                    <button class="photo-btn" id="upload-photo-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Загрузить
+                    </button>
+                </div>
+                <input type="file" id="photo-file-input" accept="image/*" style="display:none">
+                <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
+            </div>
+
+            <div class="modal-options">
+                <div class="modal-option empty" data-status="checked-empty">
+                    <span class="option-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
+                    <span>Фактически пустая</span>
+                </div>
+                <div class="modal-option occupied" data-status="discrepancy">
+                    <span class="option-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </span>
+                    <span>Фактически занята</span>
+                </div>
+                <div class="modal-option problem" data-status="problem">
+                    <span class="option-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </span>
+                    <span>Другая проблема</span>
+                </div>
+                <div class="modal-option skip" data-status="skipped">
+                    <span class="option-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </span>
+                    <span>Пропустить</span>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" id="modal-cancel">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно истории -->
+    <div class="modal-overlay" id="history-modal-overlay">
+        <div class="modal history-modal">
+            <h3 class="modal-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                История изменений
+            </h3>
+
+            <div class="history-filters">
+                <input type="text" id="history-filter-cell" class="history-filter-input" placeholder="Фильтр по ячейке">
+                <input type="date" id="history-filter-date" class="history-filter-input">
+            </div>
+
+            <div class="history-list" id="history-list">
+                <!-- История будет здесь -->
+            </div>
+
+            <button class="history-export-btn" id="history-export-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Экспорт истории
+            </button>
+
+            <div class="modal-buttons-row">
+                <button class="modal-btn secondary" id="history-clear-btn">Очистить историю</button>
+                <button class="modal-btn primary" id="history-close-btn">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно импорта XLS -->
+    <div class="modal-overlay" id="import-modal-overlay">
+        <div class="modal import-modal">
+            <h3 class="modal-title">Загрузка данных из XLS файла</h3>
+            <div class="import-content">
+                <div class="import-dropzone" id="import-dropzone">
+                    <div class="import-dropzone-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="import-dropzone-text">Перетащите XLS/XLSX файл сюда</div>
+                    <div class="import-dropzone-hint">или нажмите для выбора файла</div>
+                    <input type="file" id="xls-file-input" class="import-file-input" accept=".xls,.xlsx,.csv">
+                </div>
+
+                <div class="import-file-name" id="import-file-name">
+                    <span id="selected-file-name">Файл не выбран</span>
+                    <button class="modal-btn secondary" id="clear-file-btn">&times;</button>
+                </div>
+
+                <div class="import-progress" id="import-progress">
+                    <div class="import-progress-bar" id="import-progress-bar"></div>
+                </div>
+
+                <div class="import-status" id="import-status">
+                    <div class="import-status-title">Результаты импорта:</div>
+                    <ul class="import-status-list" id="import-status-list"></ul>
+                </div>
+            </div>
+            <div class="modal-buttons-row">
+                <button class="modal-btn secondary" id="import-cancel-btn">Отмена</button>
+                <button class="modal-btn" id="import-apply-btn" disabled>OK Применить</button>
+                <button class="modal-btn primary" id="import-start-btn" disabled>Загрузить данные</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Просмотр фото -->
+    <div class="photo-viewer-overlay" id="photo-viewer-overlay">
+        <img class="photo-viewer-img" id="photo-viewer-img" src="" alt="Photo">
+        <button class="photo-viewer-close" id="photo-viewer-close">&times;</button>
+        <button class="photo-viewer-delete" id="photo-viewer-delete">Удалить фото</button>
+    </div>
+
+    <!-- Уведомление -->
+    <div class="notification" id="notification"></div>
+
+    <!-- Библиотека SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.mini.min.js"></script>
+
+    <script>
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+        let currentAlley = 'A01';
+        let currentSectionIndex = 0;
+        let warehousesData = {};
+        let selectedCell = null;
+        let selectedCellElement = null;
+        let isMobile = window.innerWidth < 768;
+        let isInspecting = false;
+        let currentFilter = 'all';
+        let auditLog = [];
+        let currentViewingPhotoIndex = -1;
+
+        // PWA
+        let deferredPrompt = null;
+
+        // Данные из XLS файла
+        let wmsData = {
+            lastImportDate: null,
+            fileInfo: null,
+            cellsData: {}
+        };
+
+        // Константы
+        const tierOrder = ['15', '14', '13', '12', '11', '10', '03', '02', '01'];
+        const pickingTiers = ['02', '03'];
+        const upperTiers = ['10', '11', '12', '13', '14', '15'];
+        const positions = ['A', 'B', 'C'];
+        const totalSections = 15;
+
+        // ========== PWA И OFFLINE ==========
+        // Регистрация Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker зарегистрирован'))
+                    .catch(err => console.log('Ошибка регистрации SW:', err));
+            });
+        }
+
+        // PWA Install Prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('pwa-install-banner').classList.add('show');
+        });
+
+        document.getElementById('pwa-install-btn')?.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log('PWA install:', outcome);
+                deferredPrompt = null;
+                document.getElementById('pwa-install-banner').classList.remove('show');
+            }
+        });
+
+        document.getElementById('pwa-close-btn')?.addEventListener('click', () => {
+            document.getElementById('pwa-install-banner').classList.remove('show');
+        });
+
+        // Offline detection
+        window.addEventListener('online', () => {
+            document.getElementById('offline-indicator').classList.remove('show');
+            showNotification('Подключение восстановлено', 'success');
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById('offline-indicator').classList.add('show');
+            showNotification('Вы работаете офлайн', 'warning');
+        });
+
+        // Check initial state
+        if (!navigator.onLine) {
+            document.getElementById('offline-indicator').classList.add('show');
+        }
+
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Инициализация системы v2.0...');
+            initAlleysDropdown();
+            generateWarehouseData();
+            setupEventListeners();
+            updateOverviewDisplay();
+            loadSavedData();
+            loadAuditLog();
+            console.log('Система готова к работе');
+        });
+
+        function initAlleysDropdown() {
+            const alleySelect = document.getElementById('alley-select');
+            alleySelect.innerHTML = '';
+
+            for (let i = 1; i <= 14; i++) {
+                const alley = `A${i.toString().padStart(2, '0')}`;
+                const option = document.createElement('option');
+                option.value = alley;
+                option.textContent = alley;
+                alleySelect.appendChild(option);
+            }
+
+            alleySelect.value = currentAlley;
+        }
+
+        function generateWarehouseData() {
+            warehousesData = {};
+
+            for (let alleyNum = 1; alleyNum <= 14; alleyNum++) {
+                const alley = `A${alleyNum.toString().padStart(2, '0')}`;
+                warehousesData[alley] = {};
+
+                for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                    const section = sectionNum.toString().padStart(2, '0');
+                    warehousesData[alley][section] = {
+                        cells: [],
+                        checkedTime: null,
+                        operator: ''
+                    };
+
+                    for (const tier of tierOrder) {
+                        for (const position of positions) {
+                            const cell = {
+                                id: `${alley}-${section}-${tier}-${position}`,
+                                alley: alley,
+                                section: section,
+                                tier: tier,
+                                position: position,
+                                systemStatus: 'empty',
+                                actualStatus: null,
+                                checked: false,
+                                checkTime: null,
+                                comment: '',
+                                operator: '',
+                                discrepancy: false,
+                                photos: []
+                            };
+
+                            warehousesData[alley][section].cells.push(cell);
+                        }
+                    }
+                }
+            }
+        }
+
+        // ========== ИСТОРИЯ ИЗМЕНЕНИЙ (АУДИТ) ==========
+        function loadAuditLog() {
+            const saved = localStorage.getItem('warehouseAuditLog');
+            if (saved) {
+                try {
+                    auditLog = JSON.parse(saved);
+                } catch (e) {
+                    auditLog = [];
+                }
+            }
+        }
+
+        function saveAuditLog() {
+            try {
+                // Ограничиваем размер лога (последние 1000 записей)
+                if (auditLog.length > 1000) {
+                    auditLog = auditLog.slice(-1000);
+                }
+                localStorage.setItem('warehouseAuditLog', JSON.stringify(auditLog));
+            } catch (e) {
+                console.error('Ошибка сохранения аудит-лога:', e);
+            }
+        }
+
+        function logAction(action, cellId, oldStatus, newStatus, hasPhoto = false) {
+            const operator = document.getElementById('operator-name').value || 'Не указан';
+
+            auditLog.push({
+                timestamp: new Date().toISOString(),
+                action: action,
+                cellId: cellId,
+                oldStatus: oldStatus,
+                newStatus: newStatus,
+                operator: operator,
+                hasPhoto: hasPhoto,
+                alley: currentAlley
+            });
+
+            saveAuditLog();
+        }
+
+        function openHistoryModal() {
+            document.getElementById('history-modal-overlay').classList.add('show');
+            renderHistoryList();
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal-overlay').classList.remove('show');
+        }
+
+        function renderHistoryList() {
+            const historyList = document.getElementById('history-list');
+            const filterCell = document.getElementById('history-filter-cell').value.toUpperCase();
+            const filterDate = document.getElementById('history-filter-date').value;
+
+            let filteredLog = [...auditLog].reverse();
+
+            if (filterCell) {
+                filteredLog = filteredLog.filter(item => item.cellId.includes(filterCell));
+            }
+
+            if (filterDate) {
+                filteredLog = filteredLog.filter(item => item.timestamp.startsWith(filterDate));
+            }
+
+            if (filteredLog.length === 0) {
+                historyList.innerHTML = '<div class="history-empty">История пуста</div>';
+                return;
+            }
+
+            historyList.innerHTML = filteredLog.slice(0, 100).map(item => {
+                const date = new Date(item.timestamp);
+                const timeStr = date.toLocaleString('ru-RU');
+
+                let statusClass = '';
+                let statusText = '';
+                switch(item.newStatus) {
+                    case 'checked-empty': statusClass = 'empty'; statusText = 'Пустая'; break;
+                    case 'discrepancy': statusClass = 'discrepancy'; statusText = 'Занята'; break;
+                    case 'problem': statusClass = 'problem'; statusText = 'Проблема'; break;
+                    case 'skipped': statusClass = ''; statusText = 'Пропущена'; break;
+                    default: statusText = item.newStatus;
+                }
+
+                return `
+                    <div class="history-item">
+                        <div class="history-item-header">
+                            <span class="history-item-cell">${item.cellId}</span>
+                            <span class="history-item-time">${timeStr}</span>
+                        </div>
+                        <div class="history-item-details">
+                            <span class="history-item-status search-result-status ${statusClass}">${statusText}</span>
+                            <span class="history-item-operator">Оператор: ${item.operator}</span>
+                            ${item.hasPhoto ? '<span class="history-item-photo">С фото</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function exportHistory() {
+            if (auditLog.length === 0) {
+                showNotification('История пуста', 'warning');
+                return;
+            }
+
+            let csv = 'Дата;Время;Ячейка;Статус;Оператор;С фото\n';
+
+            auditLog.forEach(item => {
+                const date = new Date(item.timestamp);
+                const dateStr = date.toLocaleDateString('ru-RU');
+                const timeStr = date.toLocaleTimeString('ru-RU');
+
+                let statusText = '';
+                switch(item.newStatus) {
+                    case 'checked-empty': statusText = 'Пустая'; break;
+                    case 'discrepancy': statusText = 'Занята'; break;
+                    case 'problem': statusText = 'Проблема'; break;
+                    case 'skipped': statusText = 'Пропущена'; break;
+                    default: statusText = item.newStatus;
+                }
+
+                csv += `"${dateStr}";"${timeStr}";"${item.cellId}";"${statusText}";"${item.operator}";"${item.hasPhoto ? 'Да' : 'Нет'}"\n`;
+            });
+
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `история_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+
+            showNotification('История экспортирована', 'success');
+        }
+
+        function clearHistory() {
+            if (confirm('Вы уверены, что хотите очистить всю историю?')) {
+                auditLog = [];
+                saveAuditLog();
+                renderHistoryList();
+                showNotification('История очищена', 'info');
+            }
+        }
+
+        // ========== ПОИСК И ФИЛЬТРАЦИЯ ==========
+        function searchCells(query) {
+            if (!query || query.length < 2) return [];
+
+            const results = [];
+            query = query.toUpperCase();
+
+            for (const alley in warehousesData) {
+                for (const section in warehousesData[alley]) {
+                    warehousesData[alley][section].cells.forEach(cell => {
+                        if (cell.id.includes(query)) {
+                            results.push(cell);
+                        }
+                    });
+                }
+            }
+
+            return results.slice(0, 10);
+        }
+
+        function showSearchResults(results) {
+            const container = document.getElementById('search-results');
+
+            if (results.length === 0) {
+                container.classList.remove('show');
+                return;
+            }
+
+            container.innerHTML = results.map(cell => {
+                let statusClass = 'empty';
+                let statusText = 'Не проверена';
+
+                if (cell.checked) {
+                    switch(cell.actualStatus) {
+                        case 'checked-empty': statusClass = 'empty'; statusText = 'Пустая'; break;
+                        case 'discrepancy': statusClass = 'discrepancy'; statusText = 'Занята'; break;
+                        case 'problem': statusClass = 'problem'; statusText = 'Проблема'; break;
+                        case 'skipped': statusClass = ''; statusText = 'Пропущена'; break;
+                    }
+                }
+
+                return `
+                    <div class="search-result-item" data-cell-id="${cell.id}" data-alley="${cell.alley}" data-section="${cell.section}">
+                        <span class="search-result-address">${cell.id}</span>
+                        <span class="search-result-status ${statusClass}">${statusText}</span>
+                    </div>
+                `;
+            }).join('');
+
+            container.classList.add('show');
+
+            // Обработчики кликов
+            container.querySelectorAll('.search-result-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const alley = item.dataset.alley;
+                    const section = item.dataset.section;
+
+                    // Переключаемся на нужную аллею
+                    if (alley !== currentAlley) {
+                        currentAlley = alley;
+                        document.getElementById('alley-select').value = alley;
+                        updateOverviewDisplay();
+                    }
+
+                    // Переходим в режим проверки на нужную секцию
+                    currentSectionIndex = parseInt(section) - 1;
+                    startInspection();
+
+                    container.classList.remove('show');
+                    document.getElementById('search-input').value = '';
+                });
+            });
+        }
+
+        function applyFilter(filter) {
+            currentFilter = filter;
+
+            // Обновляем кнопки
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+
+            // Обновляем отображение
+            updateSectionsGrid();
+        }
+
+        function cellMatchesFilter(cell, filter) {
+            switch(filter) {
+                case 'all': return true;
+                case 'unchecked': return !cell.checked;
+                case 'discrepancy': return cell.actualStatus === 'discrepancy';
+                case 'problem': return cell.actualStatus === 'problem';
+                default: return true;
+            }
+        }
+
+        // ========== ФОТО-ВЕРИФИКАЦИЯ ==========
+        function updatePhotoPreview() {
+            const container = document.getElementById('photo-preview-container');
+
+            if (!selectedCell || !selectedCell.photos || selectedCell.photos.length === 0) {
+                container.innerHTML = '<span style="color: #999; font-size: 0.85rem;">Нет прикреплённых фото</span>';
+                return;
+            }
+
+            container.innerHTML = selectedCell.photos.map((photo, index) =>
+                `<img src="${photo}" class="photo-preview" data-index="${index}" alt="Photo ${index + 1}">`
+            ).join('');
+
+            // Обработчики кликов для просмотра
+            container.querySelectorAll('.photo-preview').forEach(img => {
+                img.addEventListener('click', () => {
+                    openPhotoViewer(parseInt(img.dataset.index));
+                });
+            });
+        }
+
+        function openPhotoViewer(index) {
+            if (!selectedCell || !selectedCell.photos || !selectedCell.photos[index]) return;
+
+            currentViewingPhotoIndex = index;
+            document.getElementById('photo-viewer-img').src = selectedCell.photos[index];
+            document.getElementById('photo-viewer-overlay').classList.add('show');
+        }
+
+        function closePhotoViewer() {
+            document.getElementById('photo-viewer-overlay').classList.remove('show');
+            currentViewingPhotoIndex = -1;
+        }
+
+        function deleteCurrentPhoto() {
+            if (currentViewingPhotoIndex === -1 || !selectedCell) return;
+
+            if (confirm('Удалить это фото?')) {
+                selectedCell.photos.splice(currentViewingPhotoIndex, 1);
+                saveData();
+                updatePhotoPreview();
+                closePhotoViewer();
+                showNotification('Фото удалено', 'info');
+            }
+        }
+
+        async function handlePhotoCapture(file) {
+            if (!file || !selectedCell) return;
+
+            try {
+                // Сжатие изображения
+                const compressedBase64 = await compressImage(file);
+
+                if (!selectedCell.photos) {
+                    selectedCell.photos = [];
+                }
+
+                // Ограничение на количество фото
+                if (selectedCell.photos.length >= 5) {
+                    showNotification('Максимум 5 фото на ячейку', 'warning');
+                    return;
+                }
+
+                selectedCell.photos.push(compressedBase64);
+                saveData();
+                updatePhotoPreview();
+                showNotification('Фото добавлено', 'success');
+
+            } catch (error) {
+                console.error('Ошибка обработки фото:', error);
+                showNotification('Ошибка добавления фото', 'error');
+            }
+        }
+
+        function compressImage(file, maxWidth = 800, quality = 0.7) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // ========== ЗАГРУЗКА И СОХРАНЕНИЕ ДАННЫХ ==========
+        function loadSavedData() {
+            const savedData = localStorage.getItem('warehouseInspectionData');
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+
+                    for (const alley in parsedData) {
+                        if (warehousesData[alley]) {
+                            for (const section in parsedData[alley]) {
+                                if (warehousesData[alley][section]) {
+                                    parsedData[alley][section].cells.forEach(savedCell => {
+                                        const existingCell = warehousesData[alley][section].cells.find(
+                                            cell => cell.id === savedCell.id
+                                        );
+                                        if (existingCell) {
+                                            Object.assign(existingCell, savedCell);
+                                        }
+                                    });
+
+                                    warehousesData[alley][section].checkedTime = parsedData[alley][section].checkedTime;
+                                    warehousesData[alley][section].operator = parsedData[alley][section].operator;
+                                }
+                            }
+                        }
+                    }
+                    console.log('Данные загружены из localStorage');
+                } catch (error) {
+                    console.error('Ошибка загрузки данных:', error);
+                }
+            }
+
+            const savedWMSData = localStorage.getItem('warehouseWMSData');
+            if (savedWMSData) {
+                try {
+                    wmsData = JSON.parse(savedWMSData);
+                    applyWMSDataToWarehouse();
+                } catch (error) {
+                    console.error('Ошибка загрузки данных WMS:', error);
+                }
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('warehouseInspectionData', JSON.stringify(warehousesData));
+                localStorage.setItem('warehouseWMSData', JSON.stringify(wmsData));
+            } catch (error) {
+                console.error('Ошибка сохранения данных:', error);
+                showNotification('Ошибка сохранения данных', 'error');
+            }
+        }
+
+        // ========== ИМПОРТ ДАННЫХ ИЗ XLS ==========
+        function openImportModal() {
+            document.getElementById('import-modal-overlay').classList.add('show');
+            resetImportForm();
+        }
+
+        function closeImportModal() {
+            document.getElementById('import-modal-overlay').classList.remove('show');
+        }
+
+        function resetImportForm() {
+            document.getElementById('selected-file-name').textContent = 'Файл не выбран';
+            document.getElementById('import-file-name').classList.remove('show');
+            document.getElementById('import-progress').classList.remove('show');
+            document.getElementById('import-progress-bar').style.width = '0%';
+            document.getElementById('import-status').classList.remove('show');
+            document.getElementById('import-status-list').innerHTML = '';
+            document.getElementById('import-start-btn').disabled = true;
+            document.getElementById('xls-file-input').value = '';
+        }
+
+        function handleFileSelect(file) {
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+
+            const validExtensions = ['.xls', '.xlsx', '.csv'];
+            const fileExtension = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
+
+            if (!validExtensions.includes(fileExtension)) {
+                showNotification('Неверный формат файла', 'error');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showNotification('Файл слишком большой (макс. 10 MB)', 'error');
+                return;
+            }
+
+            document.getElementById('selected-file-name').textContent = `${fileName} (${fileSize} MB)`;
+            document.getElementById('import-file-name').classList.add('show');
+            document.getElementById('import-start-btn').disabled = false;
+
+            window.selectedFile = file;
+        }
+
+        async function parseXLSFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(new Error('Ошибка парсинга файла: ' + error.message));
+                    }
+                };
+
+                reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function processXLSData(xlsData) {
+            const processedData = {};
+            let totalRows = 0;
+            let validRows = 0;
+            let errors = [];
+
+            let headerRow = null;
+            let cellNameIndex = -1;
+            let statusIndex = -1;
+            let alleyIndex = -1;
+            let articlesIndex = -1;
+
+            for (let i = 0; i < Math.min(5, xlsData.length); i++) {
+                const row = xlsData[i];
+                if (Array.isArray(row)) {
+                    for (let j = 0; j < row.length; j++) {
+                        const cellValue = String(row[j] || '').toLowerCase();
+
+                        if (cellValue.includes('название') && cellValue.includes('ячейки')) {
+                            cellNameIndex = j;
+                        }
+                        if (cellValue.includes('статус')) {
+                            statusIndex = j;
+                        }
+                        if (cellValue.includes('артикул') || cellValue.includes('article') || cellValue.includes('sku')) {
+                            articlesIndex = j;
+                        }
+                        if (cellValue.includes('алле') || cellValue.includes('номер аллеи')) {
+                            alleyIndex = j;
+                        }
+                    }
+
+                    if (cellNameIndex !== -1 && statusIndex !== -1) {
+                        headerRow = i;
+                        break;
+                    }
+                }
+            }
+
+            if (cellNameIndex === -1 || statusIndex === -1) {
+                throw new Error('Не найдены колонки "Название Ячейки" и "Статус"');
+            }
+
+            for (let i = (headerRow || 0) + 1; i < xlsData.length; i++) {
+                const row = xlsData[i];
+                if (!Array.isArray(row) || row.length === 0) continue;
+
+                totalRows++;
+
+                try {
+                    const cellName = String(row[cellNameIndex] || '').trim();
+                    const status = String(row[statusIndex] || '').trim();
+                    const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
+                    const articlesRaw = articlesIndex !== -1 ? String(row[articlesIndex] || '').trim() : '';
+
+                    if (!cellName || !status) {
+                        errors.push(`Строка ${i+1}: пропущены данные`);
+                        continue;
+                    }
+
+                    const parsedCell = parseCellName(cellName, alley);
+
+                    if (!parsedCell) {
+                        errors.push(`Строка ${i+1}: неверный формат: ${cellName}`);
+                        continue;
+                    }
+
+                    const cellId = `${parsedCell.alley}-${parsedCell.section}-${parsedCell.tier}-${parsedCell.position}`;
+                    const systemStatus = convertStatus(status);
+
+                    // Parse articles list (comma/semicolon/space separated) and count
+                    let parsedArticles = [];
+                    if (articlesRaw) {
+                        parsedArticles = articlesRaw.split(/[;,\/\\\|\s]+/).map(a => a.trim()).filter(a => a.length > 0);
+                    }
+                    const articlesCount = parsedArticles.length;
+
+                    processedData[cellId] = {
+                        cellId: cellId,
+                        systemStatus: systemStatus,
+                        parsedData: parsedCell,
+                        parsedArticles: parsedArticles,
+                        articlesCount: articlesCount
+                    };
+
+                    validRows++;
+
+                } catch (error) {
+                    errors.push(`Строка ${i+1}: ${error.message}`);
+                }
+            }
+
+            return {
+                processedData,
+                stats: { totalRows, validRows, errorRows: errors.length },
+                errors
+            };
+        }
+
+        function parseCellName(cellName, alleyFromData) {
+            const cleanedName = cellName.replace(/\s+/g, ' ').trim();
+
+            const pattern1 = /OS\s+([A-Z])(\d{1,2})-(\d{1,2})-(\d{1,2})-([A-C])/i;
+            const pattern2 = /OS\s+([A-Z])\s+(\d{3})\s+(\d{3})\s+(\d{3})/i;
+
+            let alley = '', section = '', tier = '', position = '';
+
+            const match1 = cleanedName.match(pattern1);
+            const match2 = cleanedName.match(pattern2);
+
+            if (match1) {
+                alley = match1[1].toUpperCase() + match1[2].padStart(2, '0');
+                section = match1[3].padStart(2, '0');
+                tier = match1[4].padStart(2, '0');
+                position = match1[5].toUpperCase();
+            } else if (match2) {
+                alley = match2[1].toUpperCase() + match2[2].padStart(2, '0').slice(-2);
+                section = match2[3].padStart(2, '0');
+                tier = match2[4].padStart(2, '0');
+                const depth = parseInt(match2[4]);
+                position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
+            } else if (alleyFromData) {
+                const alleyMatch = alleyFromData.match(/([A-Z])(\d{1,2})/i);
+                if (alleyMatch) {
+                    alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
+                    const numbers = cellName.match(/\d+/g);
+                    if (numbers && numbers.length >= 3) {
+                        section = numbers[0].padStart(2, '0').slice(-2);
+                        tier = numbers[1].padStart(2, '0').slice(-2);
+                        position = numbers[2] === '49' ? 'A' : numbers[2] === '50' ? 'B' : 'C';
+                    }
+                }
+            }
+
+            if (!alley) return null;
+
+            if (!alley.match(/^A\d{2}$/) || !section.match(/^\d{2}$/) ||
+                !tier.match(/^\d{2}$/) || !['A', 'B', 'C'].includes(position)) {
+                return null;
+            }
+
+            return { alley, section, tier, position };
+        }
+
+        function convertStatus(status) {
+            const statusLower = status.toLowerCase();
+
+            if (statusLower.includes('свобод') || statusLower.includes('пуст') || statusLower === 'empty') {
+                return 'empty';
+            } else if (statusLower.includes('занят') || statusLower.includes('заполн') || statusLower === 'occupied') {
+                return 'occupied';
+            }
+            return 'unknown';
+        }
+
+        function applyWMSDataToWarehouse() {
+            let updatedCells = 0;
+
+            for (const cellId in wmsData.cellsData) {
+                const wmsCell = wmsData.cellsData[cellId];
+                const parts = cellId.split('-');
+
+                if (parts.length !== 4) continue;
+
+                const [alley, section, tier, position] = parts;
+
+                if (warehousesData[alley] && warehousesData[alley][section]) {
+                    const cell = warehousesData[alley][section].cells.find(
+                        c => c.tier === tier && c.position === position
+                    );
+
+                    if (cell) {
+                        cell.systemStatus = wmsCell.systemStatus;
+                        // apply parsed articles info if present
+                        if (wmsCell.parsedArticles) {
+                            cell.parsedArticles = wmsCell.parsedArticles;
+                            cell.articlesCount = wmsCell.articlesCount || wmsCell.parsedArticles.length;
+                            cell.needsAttention = (cell.articlesCount || 0) >= 2;
+                        } else {
+                            cell.parsedArticles = cell.parsedArticles || [];
+                            cell.articlesCount = cell.articlesCount || 0;
+                            cell.needsAttention = !!cell.needsAttention;
+                        }
+                        updatedCells++;
+                    }
+                }
+            }
+
+            return { updatedCells };
+        }
+
+        // Apply staged import buffer into wmsData and warehouse, clear pending buffer
+        function applyImport() {
+            if (!window.pendingWMSImport || !window.pendingWMSImport.processed) {
+                showNotification('Нет подготовленных данных для применения', 'warning');
+                return;
+            }
+
+            const processed = window.pendingWMSImport.processed;
+            // Save wmsData with enriched cellsData
+            wmsData = {
+                lastImportDate: new Date().toISOString(),
+                fileInfo: window.pendingWMSImport.fileInfo || {},
+                cellsData: processed.processedData
+            };
+
+            const applyResult = applyWMSDataToWarehouse();
+            saveData();
+
+            // Clear pending buffer and disable apply button
+            window.pendingWMSImport = null;
+            const applyBtn = document.getElementById('import-apply-btn');
+            if (applyBtn) applyBtn.disabled = true;
+
+            if (isInspecting) updateInspectionCarousel(); else updateOverviewDisplay();
+
+            showNotification(`Данные применены — обновлено ${applyResult.updatedCells} ячеек`, 'success');
+            document.getElementById('import-modal-overlay').classList.remove('show');
+        }
+
+        // Reset inspection progress (clear checked flags, statuses, times) but keep WMS import and photos
+        function resetInspectionProgress() {
+            if (!confirm('Сбросить выполнение проверки? Все пометки о проверках будут удалены.')) return;
+
+            for (const alley in warehousesData) {
+                for (const section in warehousesData[alley]) {
+                    warehousesData[alley][section].cells.forEach(cell => {
+                        cell.checked = false;
+                        cell.actualStatus = null;
+                        cell.checkTime = null;
+                        cell.operator = '';
+                        cell.discrepancy = false;
+                        // keep photos and parsed WMS info
+                    });
+                    warehousesData[alley][section].checkedTime = null;
+                    warehousesData[alley][section].operator = '';
+                }
+            }
+
+            saveData();
+            updateOverviewDisplay();
+            if (isInspecting) updateInspectionCarousel();
+            showNotification('Статус проверки сброшен', 'info');
+        }
+
+        async function startImport() {
+            const file = window.selectedFile;
+            if (!file) {
+                showNotification('Файл не выбран', 'error');
+                return;
+            }
+
+            const progressBar = document.getElementById('import-progress-bar');
+            const progressContainer = document.getElementById('import-progress');
+            const statusContainer = document.getElementById('import-status');
+            const statusList = document.getElementById('import-status-list');
+
+            progressContainer.classList.add('show');
+            statusContainer.classList.remove('show');
+            statusList.innerHTML = '';
+            progressBar.style.width = '0%';
+
+            try {
+                progressBar.style.width = '25%';
+                const xlsData = await parseXLSFile(file);
+                progressBar.style.width = '50%';
+
+                const processed = processXLSData(xlsData);
+                progressBar.style.width = '90%';
+
+                // Store parsed result in a pending buffer — require explicit user confirmation to apply
+                window.pendingWMSImport = {
+                    fileInfo: { name: file.name, size: file.size },
+                    processed: processed
+                };
+
+                // Show summary to user and enable OK (apply) button
+                statusContainer.classList.add('show');
+                statusList.innerHTML = `
+                    <li class="import-status-item"><span>Обработано строк:</span><span>${processed.stats.validRows}</span></li>
+                    <li class="import-status-item"><span>Ошибок:</span><span>${processed.stats.errorRows}</span></li>
+                    <li class="import-status-item"><span>Ячеек в файле:</span><span>${Object.keys(processed.processedData).length}</span></li>
+                `;
+
+                document.getElementById('import-apply-btn').disabled = false;
+                progressBar.style.width = '100%';
+
+                showNotification('Парсинг завершён. Нажмите OK Применить чтобы обновить данные в системе', 'info');
+
+            } catch (error) {
+                console.error('Ошибка импорта:', error);
+                progressBar.style.backgroundColor = '#e74c3c';
+                showNotification(`Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // ========== ЭКСПОРТ ДАННЫХ В CSV ==========
+        function exportToCSV() {
+            if (!warehousesData[currentAlley]) {
+                showNotification('Нет данных для экспорта', 'warning');
+                return;
+            }
+
+            const operator = document.getElementById('operator-name').value || 'Не указан';
+
+            let csvContent = 'Адрес ячейки;Статус в системе;Фактический статус;Расхождение;Дата проверки;Оператор;Фото\n';
+
+            let exportedRows = 0;
+
+            for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                const section = sectionNum.toString().padStart(2, '0');
+                const sectionData = warehousesData[currentAlley][section];
+
+                if (!sectionData) continue;
+
+                sectionData.cells.forEach(cell => {
+                    if (cell.checked && cell.actualStatus !== 'skipped') {
+                        const actualStatus = getActualStatusText(cell.actualStatus);
+                        const discrepancy = (cell.systemStatus === 'empty' && cell.actualStatus === 'discrepancy') ||
+                                          (cell.systemStatus === 'occupied' && cell.actualStatus === 'checked-empty') ? 'Да' : 'Нет';
+                        const checkTime = cell.checkTime ? new Date(cell.checkTime).toLocaleString() : '';
+                        const hasPhoto = cell.photos && cell.photos.length > 0 ? 'Да' : 'Нет';
+
+                        csvContent += `"${cell.id}";"${cell.systemStatus}";"${actualStatus}";"${discrepancy}";"${checkTime}";"${cell.operator || operator}";"${hasPhoto}"\n`;
+                        exportedRows++;
+                    }
+                });
+            }
+
+            if (exportedRows === 0) {
+                showNotification('Нет проверенных ячеек', 'warning');
+                return;
+            }
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `отчет_${currentAlley}_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+
+            showNotification(`Экспортировано ${exportedRows} строк`, 'success');
+        }
+
+        function getActualStatusText(status) {
+            switch(status) {
+                case 'checked-empty': return 'Пустая';
+                case 'discrepancy': return 'Занята';
+                case 'problem': return 'Проблема';
+                default: return 'Не проверена';
+            }
+        }
+
+        // ========== ОБНОВЛЕНИЕ РЕЖИМА ОБЗОРА ==========
+        function updateOverviewDisplay() {
+            document.getElementById('overview-alley-title').textContent = `Аллея ${currentAlley} - Секции`;
+            updateGlobalStats();
+            updateSectionsGrid();
+        }
+
+        function updateGlobalStats() {
+            if (!warehousesData[currentAlley]) return;
+
+            let total = 0, checked = 0, discrepancies = 0, problems = 0;
+
+            for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                const section = sectionNum.toString().padStart(2, '0');
+                if (warehousesData[currentAlley][section]) {
+                    const cells = warehousesData[currentAlley][section].cells;
+                    total += cells.length;
+                    checked += cells.filter(c => c.checked && c.actualStatus !== 'skipped').length;
+                    discrepancies += cells.filter(c => c.actualStatus === 'discrepancy').length;
+                    problems += cells.filter(c => c.actualStatus === 'problem').length;
+                }
+            }
+
+            document.getElementById('total-cells').textContent = total;
+            document.getElementById('checked-cells').textContent = checked;
+            document.getElementById('discrepancy-cells').textContent = discrepancies;
+            document.getElementById('problem-cells').textContent = problems;
+        }
+
+        function updateSectionsGrid() {
+            const sectionsGrid = document.getElementById('sections-grid');
+            if (!sectionsGrid) return;
+
+            sectionsGrid.innerHTML = '';
+
+            if (!warehousesData[currentAlley]) {
+                sectionsGrid.innerHTML = '<div class="section-card">Нет данных</div>';
+                return;
+            }
+
+            for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                const section = sectionNum.toString().padStart(2, '0');
+                const sectionData = warehousesData[currentAlley][section];
+                if (!sectionData) continue;
+
+                const cells = sectionData.cells;
+                const total = cells.length;
+                const checked = cells.filter(c => c.checked && c.actualStatus !== 'skipped').length;
+                const discrepancies = cells.filter(c => c.actualStatus === 'discrepancy').length;
+                const problems = cells.filter(c => c.actualStatus === 'problem').length;
+                const progress = total > 0 ? Math.round((checked / total) * 100) : 0;
+
+                // Проверяем, есть ли ячейки, соответствующие фильтру
+                const hasMatchingCells = cells.some(c => cellMatchesFilter(c, currentFilter));
+
+                let statusClass = 'status-not-started';
+                let statusText = 'Не начата';
+
+                if (progress === 100) {
+                    statusClass = 'status-completed';
+                    statusText = 'Завершена';
+                } else if (progress > 0) {
+                    statusClass = 'status-in-progress';
+                    statusText = 'В процессе';
+                }
+
+                if (discrepancies > 0 || problems > 0) {
+                    statusClass = 'status-with-issues';
+                    statusText = 'Есть проблемы';
+                }
+
+                const sectionCard = document.createElement('div');
+                sectionCard.className = `section-card ${!hasMatchingCells && currentFilter !== 'all' ? 'filtered-out' : ''}`;
+                sectionCard.dataset.sectionIndex = sectionNum - 1;
+
+                sectionCard.innerHTML = `
+                    <div class="section-card-header">
+                        <div class="section-card-title">Секция ${section}</div>
+                        <div class="section-card-status ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="section-card-stats">
+                        <div class="section-card-stat">
+                            <span class="section-card-stat-label">Всего:</span>
+                            <span class="section-card-stat-value">${total}</span>
+                        </div>
+                        <div class="section-card-stat">
+                            <span class="section-card-stat-label">Проверено:</span>
+                            <span class="section-card-stat-value">${checked}</span>
+                        </div>
+                        <div class="section-card-stat">
+                            <span class="section-card-stat-label">Расхождения:</span>
+                            <span class="section-card-stat-value">${discrepancies}</span>
+                        </div>
+                        <div class="section-card-stat">
+                            <span class="section-card-stat-label">Проблемы:</span>
+                            <span class="section-card-stat-value">${problems}</span>
+                        </div>
+                    </div>
+                    <div class="section-card-progress">
+                        <div class="section-card-progress-fill" style="width: ${progress}%"></div>
+                    </div>
+                `;
+
+                sectionCard.addEventListener('click', () => {
+                    currentSectionIndex = sectionNum - 1;
+                    startInspection();
+                });
+
+                sectionsGrid.appendChild(sectionCard);
+            }
+        }
+
+        // ========== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ==========
+        function startInspection() {
+            isInspecting = true;
+
+            document.getElementById('overview-mode').style.display = 'none';
+            document.getElementById('inspection-mode').style.display = 'flex';
+            document.getElementById('inspection-alley-title').textContent = `Аллея ${currentAlley} - Проверка`;
+
+            updateInspectionCarousel();
+            showNotification(`Проверка аллеи ${currentAlley}`, 'info');
+        }
+
+        function exitInspection() {
+            isInspecting = false;
+
+            document.getElementById('inspection-mode').style.display = 'none';
+            document.getElementById('overview-mode').style.display = 'flex';
+
+            saveData();
+            updateOverviewDisplay();
+            showNotification(`Проверка завершена`, 'info');
+        }
+
+        // ========== КАРУСЕЛЬ ПРОВЕРКИ ==========
+        function updateInspectionCarousel() {
+            const carousel = document.getElementById('sections-carousel');
+            const indicators = document.getElementById('swipe-indicators');
+
+            if (!carousel || !indicators) return;
+
+            carousel.innerHTML = '';
+            indicators.innerHTML = '';
+
+            if (!warehousesData[currentAlley]) {
+                carousel.innerHTML = '<div class="inspection-section-slide"><div style="text-align:center;padding:40px;color:#666;">Нет данных</div></div>';
+                return;
+            }
+
+            for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                const section = sectionNum.toString().padStart(2, '0');
+                const slide = createInspectionSectionSlide(section, sectionNum - 1);
+                carousel.appendChild(slide);
+
+                const indicator = document.createElement('div');
+                indicator.className = `swipe-indicator ${sectionNum - 1 === currentSectionIndex ? 'active' : ''}`;
+                indicator.dataset.index = sectionNum - 1;
+                indicator.addEventListener('click', () => goToSection(sectionNum - 1));
+                indicators.appendChild(indicator);
+            }
+
+            goToSection(currentSectionIndex);
+        }
+
+        function createInspectionSectionSlide(section, index) {
+            const sectionData = warehousesData[currentAlley][section];
+            if (!sectionData) {
+                return createEmptySlide(section, index);
+            }
+
+            const cells = sectionData.cells;
+
+            const slide = document.createElement('div');
+            slide.className = 'inspection-section-slide';
+            slide.dataset.sectionIndex = index;
+            slide.dataset.section = section;
+
+            const rackContainer = document.createElement('div');
+            rackContainer.className = 'inspection-rack';
+
+            const cellsByTier = {};
+            tierOrder.forEach(tier => {
+                cellsByTier[tier] = cells.filter(cell => cell.tier === tier);
+            });
+
+            tierOrder.forEach(tier => {
+                const tierCells = cellsByTier[tier];
+                if (tierCells.length === 0) return;
+
+                const tierRow = document.createElement('div');
+                tierRow.className = 'inspection-tier-row';
+
+                if (pickingTiers.includes(tier)) {
+                    tierRow.classList.add('inspection-tier-picking');
+                } else if (upperTiers.includes(tier)) {
+                    tierRow.classList.add('inspection-tier-upper');
+                }
+
+                const tierLabel = document.createElement('div');
+                tierLabel.className = 'inspection-tier-label';
+                if (pickingTiers.includes(tier)) tierLabel.classList.add('picking');
+                else if (upperTiers.includes(tier)) tierLabel.classList.add('upper');
+                tierLabel.textContent = tier;
+                tierRow.appendChild(tierLabel);
+
+                const cellsContainer = document.createElement('div');
+                cellsContainer.className = 'inspection-cells-container';
+
+                tierCells.sort((a, b) => positions.indexOf(a.position) - positions.indexOf(b.position));
+
+                tierCells.forEach(cell => {
+                    const cellElement = createCellElement(cell);
+                    cellsContainer.appendChild(cellElement);
+                });
+
+                tierRow.appendChild(cellsContainer);
+                rackContainer.appendChild(tierRow);
+            });
+
+            slide.innerHTML = `
+                <div class="inspection-section-header">
+                    <div class="inspection-section-name">Секция ${section}</div>
+                    <div class="inspection-section-counter">${index + 1}/${totalSections}</div>
+                </div>
+                <div class="inspection-rack-container"></div>
+            `;
+
+            slide.querySelector('.inspection-rack-container').appendChild(rackContainer);
+
+            return slide;
+        }
+
+        function createCellElement(cell) {
+            const cellElement = document.createElement('div');
+
+            let statusClass = 'inspection-cell-unchecked';
+            if (cell.checked) {
+                switch(cell.actualStatus) {
+                    case 'checked-empty': statusClass = 'inspection-cell-checked-empty'; break;
+                    case 'discrepancy': statusClass = 'inspection-cell-discrepancy'; break;
+                    case 'problem': statusClass = 'inspection-cell-problem'; break;
+                    case 'skipped': statusClass = 'inspection-cell-skipped'; break;
+                }
+            }
+
+            cellElement.className = `inspection-cell ${statusClass}`;
+            if (cell.actualStatus === 'discrepancy' || cell.actualStatus === 'problem') {
+                cellElement.classList.add('pulse');
+            }
+
+            if (cell.systemStatus === 'occupied') {
+                cellElement.style.borderLeft = '4px solid #e74c3c';
+            } else if (cell.systemStatus === 'empty') {
+                cellElement.style.borderLeft = '4px solid #2ecc71';
+            }
+
+            cellElement.dataset.cellId = cell.id;
+
+            let photoIndicator = '';
+            if (cell.photos && cell.photos.length > 0) {
+                photoIndicator = `<div class="inspection-cell-photo-indicator">${cell.photos.length}</div>`;
+            }
+
+            let statusIcon = cell.systemStatus === 'occupied' ? '&#128230;' : '&#9634;';
+
+            // Articles badge
+            let articlesBadge = '';
+            const count = cell.articlesCount || (cell.parsedArticles ? cell.parsedArticles.length : 0);
+            if (count && count > 0) {
+                const attentionClass = (cell.needsAttention || count >= 2) ? 'attention' : '';
+                articlesBadge = `<div class="cell-articles-badge ${attentionClass}">${count}</div>`;
+            }
+
+            cellElement.innerHTML = `
+                ${articlesBadge}
+                ${photoIndicator}
+                <div class="inspection-cell-address">${cell.position}</div>
+                <div class="inspection-cell-position">${statusIcon}</div>
+            `;
+
+            cellElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleCellClick(cell, cellElement);
+            });
+
+            return cellElement;
+        }
+
+        function createEmptySlide(section, index) {
+            const slide = document.createElement('div');
+            slide.className = 'inspection-section-slide';
+            slide.innerHTML = `
+                <div class="inspection-section-header">
+                    <div class="inspection-section-name">Секция ${section}</div>
+                    <div class="inspection-section-counter">${index + 1}/${totalSections}</div>
+                </div>
+                <div class="inspection-rack-container">
+                    <div style="text-align:center;padding:40px;color:#666;">Нет данных</div>
+                </div>
+            `;
+            return slide;
+        }
+
+        // ========== НАВИГАЦИЯ ПО СЕКЦИЯМ ==========
+        function goToSection(index) {
+            if (index < 0 || index >= totalSections) return;
+
+            currentSectionIndex = index;
+            const carousel = document.getElementById('sections-carousel');
+            if (carousel) {
+                carousel.style.transform = `translateX(-${index * 100}%)`;
+            }
+
+            document.querySelectorAll('.swipe-indicator').forEach((ind, i) => {
+                ind.classList.toggle('active', i === index);
+            });
+        }
+
+        function nextSection() {
+            if (currentSectionIndex < totalSections - 1) goToSection(currentSectionIndex + 1);
+        }
+
+        function prevSection() {
+            if (currentSectionIndex > 0) goToSection(currentSectionIndex - 1);
+        }
+
+        // ========== ОБРАБОТКА КЛИКОВ ПО ЯЧЕЙКАМ ==========
+        function handleCellClick(cell, cellElement) {
+            selectedCell = cell;
+            selectedCellElement = cellElement;
+            openModal(cell);
+        }
+
+        // ========== МОДАЛЬНОЕ ОКНО ==========
+        function openModal(cell) {
+            document.getElementById('modal-address').textContent = cell.id;
+            document.getElementById('modal-overlay').classList.add('show');
+            updatePhotoPreview();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('show');
+            selectedCell = null;
+            selectedCellElement = null;
+        }
+
+        function updateCellStatus(status) {
+            if (!selectedCell) return;
+
+            const oldStatus = selectedCell.actualStatus;
+            const hasPhoto = selectedCell.photos && selectedCell.photos.length > 0;
+
+            selectedCell.actualStatus = status;
+            selectedCell.checked = true;
+            selectedCell.checkTime = new Date().toISOString();
+            selectedCell.operator = document.getElementById('operator-name').value || 'Не указан';
+
+            if ((selectedCell.systemStatus === 'empty' && status === 'discrepancy') ||
+                (selectedCell.systemStatus === 'occupied' && status === 'checked-empty')) {
+                selectedCell.discrepancy = true;
+            }
+
+            // Логируем действие
+            logAction('check', selectedCell.id, oldStatus, status, hasPhoto);
+
+            if (selectedCellElement) {
+                selectedCellElement.classList.remove(
+                    'inspection-cell-unchecked', 'inspection-cell-checked-empty',
+                    'inspection-cell-discrepancy', 'inspection-cell-problem',
+                    'inspection-cell-skipped', 'pulse'
+                );
+
+                let newStatusClass = 'inspection-cell-unchecked';
+                switch(status) {
+                    case 'checked-empty': newStatusClass = 'inspection-cell-checked-empty'; break;
+                    case 'discrepancy':
+                        newStatusClass = 'inspection-cell-discrepancy';
+                        selectedCellElement.classList.add('pulse');
+                        break;
+                    case 'problem':
+                        newStatusClass = 'inspection-cell-problem';
+                        selectedCellElement.classList.add('pulse');
+                        break;
+                    case 'skipped': newStatusClass = 'inspection-cell-skipped'; break;
+                }
+
+                selectedCellElement.classList.add(newStatusClass);
+            }
+
+            saveData();
+            updateGlobalStats();
+
+            let message = '', type = 'info';
+            switch(status) {
+                case 'checked-empty': message = `${selectedCell.id} - пустая`; type = 'success'; break;
+                case 'discrepancy': message = `${selectedCell.id} - РАСХОЖДЕНИЕ!`; type = 'warning'; break;
+                case 'problem': message = `${selectedCell.id} - проблема`; type = 'info'; break;
+                case 'skipped': message = `${selectedCell.id} - пропущена`; type = 'info'; break;
+            }
+
+            showNotification(message, type);
+            closeModal();
+        }
+
+        // ========== УВЕДОМЛЕНИЯ ==========
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification';
+            notification.classList.add(type, 'show');
+
+            setTimeout(() => notification.classList.remove('show'), 3000);
+        }
+
+        // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
+        function setupEventListeners() {
+            // Выбор аллеи
+            document.getElementById('alley-select').addEventListener('change', function() {
+                currentAlley = this.value;
+                currentSectionIndex = 0;
+                updateOverviewDisplay();
+                showNotification(`Аллея ${currentAlley}`, 'info');
+            });
+
+            // Кнопки управления
+            document.getElementById('start-inspection-btn').addEventListener('click', startInspection);
+            document.getElementById('import-btn').addEventListener('click', openImportModal);
+            document.getElementById('export-btn').addEventListener('click', exportToCSV);
+            document.getElementById('history-btn').addEventListener('click', openHistoryModal);
+            document.getElementById('exit-inspection-btn').addEventListener('click', exitInspection);
+
+            // Имя оператора
+            const operatorInput = document.getElementById('operator-name');
+            operatorInput.addEventListener('change', function() {
+                localStorage.setItem('warehouseOperator', this.value);
+            });
+
+            const savedOperator = localStorage.getItem('warehouseOperator');
+            if (savedOperator) operatorInput.value = savedOperator;
+
+            // Навигация карусели
+            document.getElementById('carousel-prev').addEventListener('click', prevSection);
+            document.getElementById('carousel-next').addEventListener('click', nextSection);
+
+            // Модальное окно проверки
+            document.querySelectorAll('.modal-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    updateCellStatus(this.getAttribute('data-status'));
+                });
+            });
+
+            document.getElementById('modal-cancel').addEventListener('click', closeModal);
+
+            document.getElementById('modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+
+            // Поиск
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', function() {
+                const results = searchCells(this.value);
+                showSearchResults(results);
+            });
+
+            searchInput.addEventListener('blur', function() {
+                setTimeout(() => {
+                    document.getElementById('search-results').classList.remove('show');
+                }, 200);
+            });
+
+            // Фильтры
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    applyFilter(this.dataset.filter);
+                });
+            });
+
+            // История
+            document.getElementById('history-close-btn').addEventListener('click', closeHistoryModal);
+            document.getElementById('history-export-btn').addEventListener('click', exportHistory);
+            document.getElementById('history-clear-btn').addEventListener('click', clearHistory);
+            document.getElementById('history-filter-cell').addEventListener('input', renderHistoryList);
+            document.getElementById('history-filter-date').addEventListener('change', renderHistoryList);
+
+            document.getElementById('history-modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) closeHistoryModal();
+            });
+
+            // Фото
+            document.getElementById('take-photo-btn').addEventListener('click', () => {
+                document.getElementById('camera-input').click();
+            });
+
+            document.getElementById('upload-photo-btn').addEventListener('click', () => {
+                document.getElementById('photo-file-input').click();
+            });
+
+            document.getElementById('camera-input').addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handlePhotoCapture(e.target.files[0]);
+            });
+
+            document.getElementById('photo-file-input').addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handlePhotoCapture(e.target.files[0]);
+            });
+
+            document.getElementById('photo-viewer-close').addEventListener('click', closePhotoViewer);
+            document.getElementById('photo-viewer-delete').addEventListener('click', deleteCurrentPhoto);
+
+            document.getElementById('photo-viewer-overlay').addEventListener('click', function(e) {
+                if (e.target === this) closePhotoViewer();
+            });
+
+            // Импорт
+            const dropzone = document.getElementById('import-dropzone');
+            const fileInput = document.getElementById('xls-file-input');
+
+            dropzone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
+            });
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
+            });
+
+            document.getElementById('import-start-btn').addEventListener('click', startImport);
+            document.getElementById('import-cancel-btn').addEventListener('click', closeImportModal);
+            document.getElementById('clear-file-btn').addEventListener('click', resetImportForm);
+            document.getElementById('import-apply-btn').addEventListener('click', applyImport);
+            document.getElementById('reset-inspection-btn').addEventListener('click', resetInspectionProgress);
+
+            document.getElementById('import-modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) closeImportModal();
+            });
+
+            // Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    closeImportModal();
+                    closeHistoryModal();
+                    closePhotoViewer();
+                }
+            });
+
+            // Свайпы
+            setupSwipeHandlers();
+
+            // Resize
+            window.addEventListener('resize', function() {
+                isMobile = window.innerWidth < 768;
+                if (isInspecting) updateInspectionCarousel();
+            });
+        }
+
+        function setupSwipeHandlers() {
+            const carouselContainer = document.getElementById('carousel-container');
+            if (!carouselContainer) return;
+
+            let touchStartX = 0;
+            let touchEndX = 0;
+            const minSwipeDistance = 50;
+
+            carouselContainer.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            carouselContainer.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                const swipeDistance = touchEndX - touchStartX;
+
+                if (Math.abs(swipeDistance) > minSwipeDistance) {
+                    if (swipeDistance > 0) prevSection();
+                    else nextSection();
+                }
+            }, { passive: true });
+        }
+    </script>
+
+<script>
+/**
+ * Iframe 元素高亮注入脚本
+ * 需要在目标网站中引入此脚本来支持跨域 iframe 高亮功能
+ *
+ * 使用方法：
+ * 1. 将此脚本添加到目标网站的 HTML 中
+ * 2. 或通过浏览器扩展、用户脚本等方式注入
+ */
+
+(function () {
+  "use strict";
+
+  // 检查是否在 iframe 中
+  if (window.self === window.top) {
+    return; // 不在 iframe 中，不执行
+  }
+
+  // 检查是否已经初始化过
+  if (window.__iframeHighlightInitialized) {
+    return;
+  }
+  window.__iframeHighlightInitialized = true;
+  console.log("Iframe 高亮脚本已加载");
+
+  // 创建高亮覆盖层
+  var overlay = document.createElement("div");
+  overlay.id = "iframe-highlight-overlay";
+  overlay.style.cssText = "\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    pointer-events: none;\n    z-index: 999999;\n    overflow: hidden;\n  ";
+
+  // 创建悬停高亮框（虚线边框）
+  var highlightBox = document.createElement("div");
+  highlightBox.id = "iframe-highlight-box";
+  highlightBox.style.cssText = "\n    position: absolute;\n    border: 2px dashed #007AFF;\n    background: rgba(0, 122, 255, 0.08);\n    pointer-events: none;\n    display: none;\n    transition: all 0.1s ease;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);\n    border-radius: 2px;\n  ";
+
+  // 创建选中节点的常驻高亮框（实线边框）
+  var selectedBox = document.createElement("div");
+  selectedBox.id = "iframe-selected-box";
+  selectedBox.style.cssText = "\n    position: absolute;\n    border: 2px solid #007AFF;\n    pointer-events: none;\n    display: none;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 107, 53, 0.4);\n    border-radius: 2px;\n    z-index: 1000000;\n  ";
+
+  // 创建悬停标签显示
+  var tagLabel = document.createElement("div");
+  tagLabel.id = "iframe-tag-label";
+  tagLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 2px 6px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 2px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000001;\n    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\n    font-weight: 500;\n  ";
+
+  // 创建选中节点标签
+  var selectedLabel = document.createElement("div");
+  selectedLabel.id = "iframe-selected-label";
+  selectedLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 3px 8px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 3px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000002;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n    font-weight: 600;\n  ";
+  overlay.appendChild(highlightBox);
+  overlay.appendChild(selectedBox);
+  overlay.appendChild(tagLabel);
+  overlay.appendChild(selectedLabel);
+  document.body.appendChild(overlay);
+
+  // 存储当前选中的元素
+  var selectedElement = null;
+  var highlightEnabled = false;
+
+  // 更新选中元素的高亮显示
+  function updateSelectedHighlight(element) {
+    console.log("updateSelectedHighlight called with:", element);
+    if (!element) {
+      selectedBox.style.display = "none";
+      selectedLabel.style.display = "none";
+      selectedElement = null;
+      console.log("Cleared selected highlight");
+      return;
+    }
+    selectedElement = element;
+    var rect = element.getBoundingClientRect();
+    console.log("Selected element rect:", rect);
+
+    // 更新选中高亮框位置
+    selectedBox.style.display = "block";
+    selectedBox.style.left = "".concat(rect.left - 2, "px");
+    selectedBox.style.top = "".concat(rect.top - 2, "px");
+    selectedBox.style.width = "".concat(rect.width + 4, "px");
+    selectedBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新选中标签位置和内容
+    selectedLabel.style.display = "block";
+    selectedLabel.textContent = "\u2713 <".concat(element.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 28;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 5) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    var labelWidth = selectedLabel.offsetWidth || 100; // 预估宽度
+    if (labelLeft + labelWidth > window.innerWidth - 10) {
+      labelLeft = window.innerWidth - labelWidth - 10;
+    }
+    selectedLabel.style.left = "".concat(Math.max(5, labelLeft), "px");
+    selectedLabel.style.top = "".concat(labelTop, "px");
+    console.log("Selected highlight positioned at:", {
+      left: selectedBox.style.left,
+      top: selectedBox.style.top,
+      width: selectedBox.style.width,
+      height: selectedBox.style.height
+    });
+  }
+  function getElementSelector(element) {
+    if (!(element instanceof Element)) throw new Error('Argument must be a DOM element');
+    var segments = [];
+    var current = element;
+    while (current !== document.documentElement) {
+      var selector = '';
+      // 优先检查唯一ID
+      if (current.id && document.querySelectorAll("#".concat(current.id)).length === 1) {
+        segments.unshift("#".concat(current.id));
+        break; // ID唯一，无需继续向上
+      }
+
+      // 生成类名选择器（取第一个有效类名）
+      var classes = Array.from(current.classList).filter(function (c) {
+        return !c.startsWith('js-');
+      });
+      var className = classes.length > 0 ? ".".concat(classes[0]) : '';
+
+      // 生成位置索引（nth-child）
+      var tag = current.tagName.toLowerCase();
+      if (!className) {
+        var siblings = Array.from(current.parentNode.children);
+        var index = siblings.findIndex(function (el) {
+          return el === current;
+        }) + 1;
+        selector = "".concat(tag, ":nth-child(").concat(index, ")");
+      } else {
+        selector = className;
+      }
+      segments.unshift(selector);
+      current = current.parentElement;
+    }
+
+    // 处理根元素
+    if (current === document.documentElement) {
+      segments.unshift('html');
+    }
+    return segments.join(' > ');
+  }
+
+  // 获取元素文本内容
+  function getElementText(element) {
+    var _element$textContent;
+    if (element.tagName === "INPUT") {
+      return element.value || element.placeholder || "";
+    }
+    if (element.tagName === "TEXTAREA") {
+      return element.value || element.placeholder || "";
+    }
+    var text = ((_element$textContent = element.textContent) === null || _element$textContent === void 0 ? void 0 : _element$textContent.trim()) || "";
+    return text.length > 50 ? text.substring(0, 50) + "..." : text;
+  }
+
+  // 获取元素属性信息
+  function getElementAttributes(element) {
+    var attrs = {};
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      attrs[attr.name] = attr.value;
+    }
+    return attrs;
+  }
+
+  // 鼠标悬停事件处理
+  function handleMouseOver(e) {
+    if (!highlightEnabled) return;
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免高亮 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 如果是已选中的元素，不显示悬停高亮
+    if (target === selectedElement) {
+      highlightBox.style.display = "none";
+      tagLabel.style.display = "none";
+      return;
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+
+    // 更新悬停高亮框位置
+    highlightBox.style.display = "block";
+    highlightBox.style.left = "".concat(rect.left - 2, "px");
+    highlightBox.style.top = "".concat(rect.top - 2, "px");
+    highlightBox.style.width = "".concat(rect.width + 4, "px");
+    highlightBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新标签位置和内容
+    tagLabel.style.display = "block";
+    tagLabel.textContent = "<".concat(target.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 22;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 0) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    if (labelLeft + tagLabel.offsetWidth > window.innerWidth) {
+      labelLeft = window.innerWidth - tagLabel.offsetWidth - 5;
+    }
+    tagLabel.style.left = "".concat(Math.max(0, labelLeft), "px");
+    tagLabel.style.top = "".concat(labelTop, "px");
+
+    // 发送消息到父窗口
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 鼠标离开事件处理
+  function handleMouseOut(e) {
+    if (!highlightEnabled) return;
+    var relatedTarget = e.relatedTarget;
+
+    // 如果鼠标移动到高亮相关元素上，不隐藏高亮
+    if (relatedTarget && (relatedTarget === highlightBox || relatedTarget === tagLabel || relatedTarget === overlay || relatedTarget === selectedBox || relatedTarget === selectedLabel)) {
+      return;
+    }
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: null,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 点击事件处理
+  function handleClick(e) {
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免处理 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 检查是否是交互元素，这些元素需要保留默认行为
+    var isInteractiveElement = ['input', 'textarea', 'select', 'button', 'a'].includes(target.tagName.toLowerCase());
+
+    // 如果高亮功能启用，对于非交互元素阻止默认行为和事件传播
+    if (highlightEnabled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+    console.log("Element clicked:", {
+      tagName: target.tagName,
+      selector: selector,
+      rect: rect
+    });
+
+    // 立即更新选中高亮
+    updateSelectedHighlight(target);
+
+    // 隐藏悬停高亮，因为现在是选中状态
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-click",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 监听来自父窗口的消息
+  function handleParentMessage(event) {
+    console.log("Received message from parent:", event.data);
+    if (event.data.type === "iframe-highlight-toggle") {
+      var enabled = event.data.enabled;
+      console.log("Highlight toggle:", enabled);
+      if (enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "enable-iframe-highlight") {
+      console.log("Enable iframe highlight");
+      enableHighlight();
+    } else if (event.data.type === "disable-iframe-highlight") {
+      console.log("Disable iframe highlight");
+      disableHighlight();
+    } else if (event.data.type === "toggle-iframe-highlight") {
+      var _enabled = event.data.enabled !== undefined ? event.data.enabled : !highlightEnabled;
+      console.log("Toggle iframe highlight to:", _enabled);
+      if (_enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "update-selected-element") {
+      var selector = event.data.selector;
+      console.log("Update selected element with selector:", selector);
+      if (selector) {
+        try {
+          var element = document.querySelector(selector);
+          console.log("Found element by selector:", element);
+          updateSelectedHighlight(element);
+        } catch (error) {
+          console.warn("Failed to select element:", error);
+          updateSelectedHighlight(null);
+        }
+      } else {
+        updateSelectedHighlight(null);
+      }
+    } else if (event.data.type === "clear-selected-element") {
+      console.log("Clear selected element");
+      updateSelectedHighlight(null);
+    }
+  }
+
+  // 启用高亮功能
+  function enableHighlight() {
+    console.log("Enabling highlight");
+    document.addEventListener("mouseover", handleMouseOver, true);
+    document.addEventListener("mouseout", handleMouseOut, true);
+    document.addEventListener("click", handleClick, true);
+    highlightEnabled = true;
+    overlay.style.display = "block";
+  }
+
+  // 禁用高亮功能
+  function disableHighlight() {
+    console.log("Disabling highlight");
+    highlightEnabled = false;
+    // 保持事件监听器，但通过 highlightEnabled 变量控制行为
+    // 这样可以保留选中状态的显示
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    // 不隐藏 selectedBox 和 selectedLabel，保留选中状态
+  }
+
+  // 完全禁用高亮功能（移除所有监听器）
+  function fullyDisableHighlight() {
+    console.log("Fully disabling highlight");
+    highlightEnabled = false;
+    document.removeEventListener("mouseover", handleMouseOver, true);
+    document.removeEventListener("mouseout", handleMouseOut, true);
+    document.removeEventListener("click", handleClick, true);
+    overlay.style.display = "none";
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    selectedBox.style.display = "none";
+    selectedLabel.style.display = "none";
+  }
+
+  // 添加事件监听
+  enableHighlight();
+  window.addEventListener("message", handleParentMessage);
+
+  // 暴露全局函数供外部调用
+  window.__iframeHighlightControl = {
+    enable: enableHighlight,
+    disable: disableHighlight,
+    fullyDisable: fullyDisableHighlight,
+    isEnabled: function isEnabled() {
+      return highlightEnabled;
+    },
+    getSelectedElement: function getSelectedElement() {
+      return selectedElement;
+    },
+    updateSelected: updateSelectedHighlight,
+    // 通过消息发送开关控制
+    sendToggleMessage: function sendToggleMessage(enabled) {
+      window.parent.postMessage({
+        type: 'iframe-highlight-status',
+        enabled: enabled || highlightEnabled,
+        source: 'iframe-highlight-injector'
+      }, '*');
+    }
+  };
+
+  // 通知父窗口脚本已加载
+  try {
+    window.parent.postMessage({
+      type: "iframe-highlight-ready",
+      data: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: Date.now()
+      },
+      source: "iframe-highlight-injector"
+    }, "*");
+  } catch (error) {
+    console.warn("无法发送就绪消息到父窗口:", error);
+  }
+
+  // 清理函数
+  window.__iframeHighlightCleanup = function () {
+    fullyDisableHighlight();
+    window.removeEventListener("message", handleParentMessage);
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+    delete window.__iframeHighlightInitialized;
+    delete window.__iframeHighlightCleanup;
+  };
+})();
+
+</script>
+</body>
+</html>
