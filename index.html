@@ -764,6 +764,24 @@
             color: white;
         }
 
+        /* WMS import status visualization */
+        .inspection-cell-wms-occupied {
+            outline: 3px solid var(--danger-color);
+            outline-offset: -3px;
+            box-shadow: inset 0 0 0 3px var(--danger-color);
+        }
+
+        .inspection-cell-wms-empty {
+            outline: 3px solid var(--success-color);
+            outline-offset: -3px;
+            box-shadow: inset 0 0 0 3px var(--success-color);
+        }
+
+        .inspection-cell-wms-unknown {
+            outline: 3px dashed #95a5a6;
+            outline-offset: -3px;
+        }
+
         .pulse {
             animation: pulse 1.5s infinite;
         }
@@ -2909,6 +2927,9 @@
             const cellElement = document.createElement('div');
 
             let statusClass = 'inspection-cell-unchecked';
+            let wmsClass = '';
+
+            // Priority: if cell is checked, use checked status class
             if (cell.checked) {
                 switch(cell.actualStatus) {
                     case 'checked-empty': statusClass = 'inspection-cell-checked-empty'; break;
@@ -2916,17 +2937,19 @@
                     case 'problem': statusClass = 'inspection-cell-problem'; break;
                     case 'skipped': statusClass = 'inspection-cell-skipped'; break;
                 }
+            } else if (cell.systemStatus) {
+                // If not checked but has WMS data, apply WMS status class
+                switch(cell.systemStatus) {
+                    case 'occupied': wmsClass = 'inspection-cell-wms-occupied'; break;
+                    case 'empty': wmsClass = 'inspection-cell-wms-empty'; break;
+                    case 'unknown': wmsClass = 'inspection-cell-wms-unknown'; break;
+                }
             }
 
             cellElement.className = `inspection-cell ${statusClass}`;
+            if (wmsClass) cellElement.classList.add(wmsClass);
             if (cell.actualStatus === 'discrepancy' || cell.actualStatus === 'problem') {
                 cellElement.classList.add('pulse');
-            }
-
-            if (cell.systemStatus === 'occupied') {
-                cellElement.style.borderLeft = '4px solid #e74c3c';
-            } else if (cell.systemStatus === 'empty') {
-                cellElement.style.borderLeft = '4px solid #2ecc71';
             }
 
             cellElement.dataset.cellId = cell.id;
