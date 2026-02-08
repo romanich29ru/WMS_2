@@ -66,6 +66,13 @@
             color: var(--primary-color);
         }
 
+        .app-version {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
         .operator-info {
             display: flex;
             align-items: center;
@@ -995,7 +1002,10 @@
         <!-- Панель управления -->
         <div class="control-panel">
             <div class="control-header">
-                <h1 class="app-title">📦 Проверка складских ячеек</h1>
+                <div>
+                    <h1 class="app-title">📦 Проверка складских ячеек</h1>
+                    <div class="app-version">v2.0 • build e0f8b74 • 08.02.2026</div>
+                </div>
                 <div class="operator-info">
                     <input type="text" id="operator-name" class="operator-name" placeholder="Имя оператора" maxlength="50">
                 </div>
