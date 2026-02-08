@@ -465,6 +465,26 @@
             color: #777;
         }
 
+        /* Бейдж конфликтов артикулов (не перекрывает позиционную букву) */
+        .conflict-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            background-color: var(--warning-color);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            pointer-events: none;
+        }
+
         /* Цвета состояний ячеек */
         .inspection-cell-unchecked {
             background-color: var(--success-color);
@@ -500,70 +520,89 @@
             50% { opacity: 0.7; }
             100% { opacity: 1; }
         }
+        
 
-        /* Выделение зон */
-        .inspection-tier-picking {
-            background-color: rgba(231, 76, 60, 0.05);
-        }
+                // Сначала пробуем привычные шаблоны с разделителями
+                const match1 = cleanedWithSpaces.match(pattern1);
+                const match2 = cleanedWithSpaces.match(pattern2);
 
-        .inspection-tier-upper {
-            background-color: rgba(52, 152, 219, 0.05);
-        }
+                if (match1) {
+                    alley = match1[1].toUpperCase() + match1[2].padStart(2, '0'); // A5 → A05
+                    section = match1[3].padStart(2, '0');
+                    tier = match1[4].padStart(2, '0');
+                    position = match1[5].toUpperCase();
+                } else if (match2) {
+                    alley = match2[1].toUpperCase() + match2[2].padStart(2, '0').slice(-2);
+                    section = match2[3].padStart(2, '0');
+                    tier = match2[4].padStart(2, '0');
+                    const depth = parseInt(match2[5], 10);
+                    position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
+                } else {
+                    // Попробуем компактный формат без разделителей
+                    const compactMatch = cleaned.match(compactPattern);
+                    if (compactMatch) {
+                        const letters = (compactMatch[1] || '').toUpperCase();
+                        const digits = compactMatch[2];
 
-        .inspection-tier-label.picking {
-            color: var(--danger-color);
-        }
+                        // Аллея — берем последнюю букву из буквеного префикса, либо используем alleyFromData
+                        if (letters.length > 0) {
+                            alley = letters.slice(-1) + '01'; // если нет номера, подставим 01 (будем корректировать ниже)
+                        } else if (alleyFromData) {
+                            const alleyMatch = String(alleyFromData).match(/([A-Z])(\d{1,2})/i);
+                            if (alleyMatch) {
+                                alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
+                            }
+                        }
 
-        .inspection-tier-label.upper {
-            color: var(--secondary-color);
-        }
+                        // Разбиваем цифры: берем последние 3 как глубину (depth), предыдущие 3 как tier, остальное — section
+                        if (digits.length >= 6) {
+                            const depth = digits.slice(-3);
+                            const t = digits.slice(-6, -3);
+                            const s = digits.slice(0, digits.length - 6);
 
-        /* Индикаторы свайпа */
-        .swipe-indicators {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            z-index: 10;
-        }
+                            section = (s || '').padStart(2, '0').slice(-2);
+                            tier = (t || '0').padStart(2, '0').slice(-2);
 
-        .swipe-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: rgba(0, 0, 0, 0.1);
-            transition: var(--transition);
-        }
+                            const depthNum = parseInt(depth, 10);
+                            position = (!isNaN(depthNum) && depthNum <= 49) ? 'A' : (!isNaN(depthNum) && depthNum <= 50) ? 'B' : 'C';
+                        }
+                    } else {
+                        // Фоллбэк: пытаемся извлечь данные из строки с разделителями/числами
+                        if (alleyFromData) {
+                            const alleyMatch = alleyFromData.match(/([A-Z])(\d{1,2})/i);
+                            if (alleyMatch) {
+                                alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
+                            }
+                        }
 
-        .swipe-indicator.active {
-            background-color: var(--secondary-color);
-            transform: scale(1.3);
-        }
+                        const numbers = raw.match(/\d+/g);
+                        if (numbers && numbers.length >= 3) {
+                            section = numbers[0].padStart(2, '0').slice(-2);
+                            tier = numbers[1].padStart(2, '0').slice(-2);
+                            const depthNum = parseInt(numbers[2], 10);
+                            position = depthNum === 49 ? 'A' : depthNum === 50 ? 'B' : 'C';
+                        }
+                    }
+                }
 
-        .swipe-hint {
-            position: absolute;
-            bottom: 50px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: var(--secondary-color);
-            font-size: 0.8rem;
-            font-weight: 600;
-            opacity: 0;
-            animation: fadeInOut 3s ease-in-out 1s 3;
-        }
+                // Если alley ещё задан в виде буквы+числа, нормализуем
+                if (alley && /^[A-Z]\d?$/.test(alley)) {
+                    // Если alley выглядит как 'A' или 'A5', нормализуем к 'A05' или 'A05'
+                    const m = alley.match(/^([A-Z])(\d{1,2})?$/i);
+                    if (m) {
+                        const letter = m[1].toUpperCase();
+                        const num = (m[2] || '1').padStart(2, '0');
+                        alley = `${letter}${num}`;
+                    }
+                }
 
-        .swipe-hint.hidden {
-            display: none;
-        }
+                // Валидация данных
+                if (!alley || !alley.match(/^A\d{2}$/)) return null;
+                if (!section || !section.match(/^\d{2}$/)) return null;
+                if (!tier || !tier.match(/^\d{2}$/)) return null;
+                if (!['A', 'B', 'C'].includes(position)) return null;
 
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0; }
+                return { alley, section, tier, position };
             50% { opacity: 0.7; }
         }
 
@@ -1194,7 +1233,9 @@
                                 checkTime: null,
                                 comment: '',
                                 operator: '',
-                                discrepancy: false
+                                discrepancy: false,
+                                wmsArticles: [],
+                                wmsConflict: false
                             };
                             
                             warehousesData[alley][section].cells.push(cell);
@@ -1370,29 +1411,73 @@
             let cellNameIndex = -1;
             let statusIndex = -1;
             let alleyIndex = -1;
+            let articleIndex = -1;
+            let productIndex = -1;
             
-            // Ищем заголовки
+            // Ищем оптимальную строку заголовка по количеству совпадений ключевых слов
+            const keywords = {
+                cellName: ['название', 'ячейки', 'ячейка', 'cell', 'адрес'],
+                status: ['статус', 'status', 'занято', 'свободно'],
+                alley: ['алле', 'номер аллеи', 'alley', 'aisle'],
+                article: ['артикул', 'article', 'sku', 'код товара'],
+                product: ['название товара', 'product', 'item', 'товар', 'наименование']
+            };
+
+            let bestMatchCount = 0;
             for (let i = 0; i < Math.min(5, xlsData.length); i++) {
                 const row = xlsData[i];
-                if (Array.isArray(row)) {
-                    for (let j = 0; j < row.length; j++) {
-                        const cellValue = String(row[j] || '').toLowerCase();
-                        
-                        if (cellValue.includes('название') && cellValue.includes('ячейки')) {
-                            cellNameIndex = j;
-                        }
-                        if (cellValue.includes('статус')) {
-                            statusIndex = j;
-                        }
-                        if (cellValue.includes('алле') || cellValue.includes('номер аллеи')) {
-                            alleyIndex = j;
-                        }
-                    }
+                if (!Array.isArray(row)) continue;
+
+                let matchCount = 0;
+                let tmpCellName = -1, tmpStatus = -1, tmpAlley = -1, tmpArticle = -1, tmpProduct = -1;
+
+                for (let j = 0; j < row.length; j++) {
+                    const cellValue = String(row[j] || '').toLowerCase().trim();
                     
-                    // Если нашли все необходимые колонки
-                    if (cellNameIndex !== -1 && statusIndex !== -1) {
-                        headerRow = i;
-                        break;
+                    if (keywords.cellName.some(k => cellValue.includes(k))) { tmpCellName = j; matchCount++; }
+                    if (keywords.status.some(k => cellValue.includes(k))) { tmpStatus = j; matchCount++; }
+                    if (keywords.alley.some(k => cellValue.includes(k))) { tmpAlley = j; matchCount++; }
+                    if (keywords.article.some(k => cellValue.includes(k))) { tmpArticle = j; matchCount++; }
+                    if (keywords.product.some(k => cellValue.includes(k))) { tmpProduct = j; matchCount++; }
+                }
+
+                if (matchCount > bestMatchCount) {
+                    bestMatchCount = matchCount;
+                    headerRow = i;
+                    cellNameIndex = tmpCellName;
+                    statusIndex = tmpStatus;
+                    alleyIndex = tmpAlley;
+                    articleIndex = tmpArticle;
+                    productIndex = tmpProduct;
+                }
+            }
+
+            // Если нашли достаточно колонок, используем этот результат
+            if (cellNameIndex === -1 || statusIndex === -1) {
+                // Если не нашли оптимального заголовка, пробуем все первые 5 строк по очереди
+                for (let i = 0; i < Math.min(5, xlsData.length); i++) {
+                    const row = xlsData[i];
+                    if (Array.isArray(row)) {
+                        for (let j = 0; j < row.length; j++) {
+                            const cellValue = String(row[j] || '').toLowerCase();
+                            if (cellValue.includes('название') && cellValue.includes('ячейки')) {
+                                cellNameIndex = j;
+                            }
+                            if (cellValue.includes('статус')) {
+                                statusIndex = j;
+                            }
+                            if (cellValue.includes('алле') || cellValue.includes('номер аллеи')) {
+                                alleyIndex = j;
+                            }
+                            if (cellValue.includes('артикул') || cellValue.includes('article')) {
+                                articleIndex = j;
+                            }
+                        }
+
+                        if (cellNameIndex !== -1 && statusIndex !== -1) {
+                            headerRow = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -1414,7 +1499,8 @@
                     const cellName = String(row[cellNameIndex] || '').trim();
                     const status = String(row[statusIndex] || '').trim();
                     const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
-                    
+                    const article = articleIndex !== -1 ? String(row[articleIndex] || '').trim() : '';
+
                     if (!cellName || !status) {
                         errors.push(`Строка ${i+1}: пропущены обязательные данные`);
                         continue;
@@ -1429,21 +1515,29 @@
                     }
                     
                     const cellId = `${parsedCell.alley}-${parsedCell.section}-${parsedCell.tier}-${parsedCell.position}`;
-                    
+
                     // Преобразуем статус
                     const systemStatus = convertStatus(status);
-                    
-                    processedData[cellId] = {
-                        cellId: cellId,
-                        originalName: cellName,
-                        systemStatus: systemStatus,
-                        parsedData: parsedCell,
-                        rawData: {
-                            status: status,
-                            alley: alley
+
+                    // Агрегируем данные по адресу — возможно несколько строк относятся к одной ячейке
+                    if (!processedData[cellId]) {
+                        processedData[cellId] = {
+                            cellId: cellId,
+                            originalNames: [cellName],
+                            systemStatus: systemStatus,
+                            parsedData: parsedCell,
+                            rawRows: [{ status: status, alley: alley, article: article }],
+                            articles: []
+                        };
+                        if (article) processedData[cellId].articles.push(article);
+                    } else {
+                        processedData[cellId].originalNames.push(cellName);
+                        processedData[cellId].rawRows.push({ status: status, alley: alley, article: article });
+                        if (article && !processedData[cellId].articles.includes(article)) {
+                            processedData[cellId].articles.push(article);
                         }
-                    };
-                    
+                    }
+
                     validRows++;
                     
                 } catch (error) {
@@ -1451,6 +1545,12 @@
                 }
             }
             
+            // Пометить конфликты — если для одного адреса более одного уникального артикула
+            for (const id in processedData) {
+                const entry = processedData[id];
+                entry.conflict = Array.isArray(entry.articles) && entry.articles.length > 1;
+            }
+
             console.log(`Обработано строк: ${validRows}/${totalRows}, ошибок: ${errors.length}`);
             
             return {
@@ -1550,25 +1650,30 @@
         // Применение данных WMS к warehousesData
         function applyWMSDataToWarehouse() {
             console.log('Применение данных WMS...');
-            
+
             let updatedCells = 0;
             let notFoundCells = 0;
-            
+            let conflictCount = 0;
+
             for (const cellId in wmsData.cellsData) {
                 const wmsCell = wmsData.cellsData[cellId];
                 const parts = cellId.split('-');
-                
+
                 if (parts.length !== 4) continue;
-                
+
                 const [alley, section, tier, position] = parts;
-                
+
                 if (warehousesData[alley] && warehousesData[alley][section]) {
                     const cell = warehousesData[alley][section].cells.find(
                         c => c.tier === tier && c.position === position
                     );
-                    
+
                     if (cell) {
                         cell.systemStatus = wmsCell.systemStatus;
+                        // Сохраняем артикулы и флаг конфликта для UI
+                        cell.wmsArticles = Array.isArray(wmsCell.articles) ? wmsCell.articles.slice() : [];
+                        cell.wmsConflict = !!wmsCell.conflict;
+                        if (cell.wmsConflict) conflictCount++;
                         updatedCells++;
                     } else {
                         notFoundCells++;
@@ -1577,9 +1682,9 @@
                     notFoundCells++;
                 }
             }
-            
-            console.log(`Обновлено ячеек: ${updatedCells}, не найдено: ${notFoundCells}`);
-            return { updatedCells, notFoundCells };
+
+            console.log(`Обновлено ячеек: ${updatedCells}, не найдено: ${notFoundCells}, конфликтов: ${conflictCount}`);
+            return { updatedCells, notFoundCells, conflictCount };
         }
 
         // Основная функция импорта
@@ -1656,6 +1761,16 @@
                 updatedItem.className = 'import-status-item';
                 updatedItem.innerHTML = `<span>Обновлено ячеек в системе:</span><span>${applyResult.updatedCells}</span>`;
                 statusList.appendChild(updatedItem);
+                
+                // Показываем количество конфликтов артикулов, если они есть
+                const conflictCount = applyResult.conflictCount || 0;
+                if (conflictCount > 0) {
+                    const conflictItem = document.createElement('li');
+                    conflictItem.className = 'import-status-item';
+                    conflictItem.style.color = '#e67e22';
+                    conflictItem.innerHTML = `<span>⚠ Ячеек с конфликтами артикулов:</span><span>${conflictCount}</span>`;
+                    statusList.appendChild(conflictItem);
+                }
                 
                 const dateItem = document.createElement('li');
                 dateItem.className = 'import-status-item';
@@ -2084,7 +2199,8 @@
             
             const cellAddress = document.createElement('div');
             cellAddress.className = 'inspection-cell-address';
-            cellAddress.textContent = cell.position;
+            // Показываем полный адрес ячейки без префикса OS (формат: A01-01-15-A)
+            cellAddress.textContent = cell.id;
             
             const cellPosition = document.createElement('div');
             cellPosition.className = 'inspection-cell-position';
@@ -2101,6 +2217,17 @@
             
             cellElement.appendChild(cellAddress);
             cellElement.appendChild(cellPosition);
+
+            // Бейдж конфликтов артикулов (если для одного адреса найдено несколько разных артикулов)
+            const articles = Array.isArray(cell.wmsArticles) ? cell.wmsArticles : [];
+            const hasConflict = !!cell.wmsConflict || (articles && articles.length > 1);
+            if (hasConflict) {
+                const badge = document.createElement('div');
+                badge.className = 'conflict-badge';
+                badge.title = articles && articles.length > 0 ? `Артикулы: ${articles.join(', ')}` : 'Несколько артикулов';
+                badge.textContent = articles && articles.length > 1 ? String(articles.length) : '!' ;
+                cellElement.appendChild(badge);
+            }
             
             // Обработчик клика/тапа
             cellElement.addEventListener('click', (e) => {

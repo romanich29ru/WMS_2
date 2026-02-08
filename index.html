@@ -1487,6 +1487,10 @@
                 flex: 1;
                 text-align: center;
             }
+
+            /* Topology container styles */
+            #topology-container { box-sizing: border-box; }
+            #topology-svg-wrapper svg { width: 100%; height: 100%; display: block; }
         }
     </style>
 </head>
@@ -1588,6 +1592,10 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     История
                 </button>
+                <button class="control-btn" id="topology-btn" title="Показать топологию склада">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    Топология
+                </button>
                 <button class="control-btn" id="reset-inspection-btn" title="Сброс выполнения проверки">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><path d="M21 12a9 9 0 1 1-3.36-6.36L21 12z"/></svg>
                     Сброс проверки
@@ -1602,6 +1610,20 @@
                 <!-- Карточки секций будут добавлены через JS -->
             </div>
         </div>
+
+            <!-- Topology container (hidden by default) -->
+            <div id="topology-container" style="display:none; padding:12px; background: white; border-radius:8px; margin: 12px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <strong>Топология — аллея <span id="topology-alley">A01</span></strong>
+                    <div>
+                        <button class="modal-btn secondary" id="topology-refresh-btn">Обновить</button>
+                        <button class="modal-btn" id="topology-close-btn">Закрыть</button>
+                    </div>
+                </div>
+                <div id="topology-svg-wrapper" style="width:100%; height:420px; overflow:auto;">
+                    <!-- SVG will be injected here -->
+                </div>
+            </div>
     </div>
 
     <!-- РЕЖИМ ПРОВЕРКИ НА ВЕСЬ ЭКРАН -->
@@ -2542,6 +2564,8 @@
 
             const pattern1 = /OS\s+([A-Z])(\d{1,2})-(\d{1,2})-(\d{1,2})-([A-C])/i;
             const pattern2 = /OS\s+([A-Z])\s+(\d{3})\s+(\d{3})\s+(\d{3})/i;
+            // Pattern3: concatenated form without separators, e.g. "OSNA002010049"
+            const pattern3 = /OS([A-Z]{1,2})(\d{3})(\d{3})(\d{3})/i;
 
             let alley = '', section = '', tier = '', position = '';
 
@@ -2558,6 +2582,21 @@
                 section = match2[3].padStart(2, '0');
                 tier = match2[4].padStart(2, '0');
                 const depth = parseInt(match2[4]);
+                position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
+            } else if (pattern3.test(cleanedName)) {
+                const m3 = cleanedName.match(pattern3);
+                // OS + alleyLetters + section(3) + tier(3) + depth(3)
+                // Example: OSNA002010049 -> m3[1]=NA, m3[2]=002, m3[3]=010, m3[4]=049
+                const alleyLetters = m3[1].toUpperCase();
+                const part1 = m3[2];
+                const part2 = m3[3];
+                const part3 = m3[4];
+
+                // Derive alley as first letter + two-digit number from part1
+                alley = alleyLetters[0] + String(part1).padStart(3, '0').slice(-2);
+                section = String(part1).padStart(3, '0').slice(-2);
+                tier = String(part2).padStart(3, '0').slice(-2);
+                const depth = parseInt(part3);
                 position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
             } else if (alleyFromData) {
                 const alleyMatch = alleyFromData.match(/([A-Z])(\d{1,2})/i);
@@ -3418,6 +3457,263 @@
                 }
             }, { passive: true });
         }
+
+        // Canvas-hybrid Topology Renderer with pan/zoom support
+        class CanvasTopology {
+            constructor(containerId) {
+                this.containerId = containerId;
+                this.canvas = null;
+                this.ctx = null;
+                this.panX = 0;
+                this.panY = 0;
+                this.zoom = 1;
+                this.cellW = 24;
+                this.cellH = 16;
+                this.gap = 4;
+                this.sectionGap = 18;
+                this.alley = null;
+                this.cells = []; // flattened cell list with precomputed geometry
+                this.cellIndex = {}; // cellId -> index in cells array
+                this.lastMouseX = 0;
+                this.lastMouseY = 0;
+            }
+
+            init(alley) {
+                this.alley = alley;
+                const wrapper = document.getElementById(this.containerId);
+                if (!wrapper) return;
+                wrapper.innerHTML = '';
+
+                // Create canvas
+                this.canvas = document.createElement('canvas');
+                this.canvas.style.cssText = 'border: 1px solid #ddd; cursor: grab; display: block; background: white; width: 100%; height: 100%;';
+                this.canvas.width = wrapper.offsetWidth || 1000;
+                this.canvas.height = wrapper.offsetHeight || 500;
+                this.ctx = this.canvas.getContext('2d', { alpha: false });
+                wrapper.appendChild(this.canvas);
+
+                // Setup event handlers
+                this.setupEventHandlers();
+                this.buildCellIndex(alley);
+                this.render();
+            }
+
+            buildCellIndex(alley) {
+                this.cells = [];
+                this.cellIndex = {};
+
+                if (!warehousesData[alley]) return;
+
+                const sections = Object.keys(warehousesData[alley]).sort((a,b) => parseInt(a) - parseInt(b));
+                sections.forEach((section, sIdx) => {
+                    const baseX = sIdx * (3 * (this.cellW + this.gap) + this.sectionGap) + 10;
+                    tierOrder.forEach((tier, tIdx) => {
+                        positions.forEach((pos, pIdx) => {
+                            const x = baseX + pIdx * (this.cellW + this.gap);
+                            const y = 30 + tIdx * (this.cellH + this.gap);
+                            const cell = warehousesData[alley][section].cells.find(c => c.tier === tier && c.position === pos);
+                            const cellId = cell ? cell.id : `${alley}-${section}-${tier}-${pos}`;
+                            const idx = this.cells.length;
+                            this.cells.push({
+                                id: cellId,
+                                x, y, w: this.cellW, h: this.cellH,
+                                section, tier, pos,
+                                cell: cell,
+                                status: cell ? cell.systemStatus : 'unknown'
+                            });
+                            this.cellIndex[cellId] = idx;
+                        });
+                    });
+                });
+            }
+
+            getColor(status) {
+                switch (status) {
+                    case 'occupied': return '#f6c6c3';
+                    case 'empty': return '#d8f0db';
+                    default: return '#f0f0f0';
+                }
+            }
+
+            setupEventHandlers() {
+                // Pan (drag)
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.canvas.style.cursor = 'grabbing';
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.lastMouseX = e.clientX - rect.left;
+                    this.lastMouseY = e.clientY - rect.top;
+                    const handleMouseMove = (e) => {
+                        const rect = this.canvas.getBoundingClientRect();
+                        const dx = (e.clientX - rect.left) - this.lastMouseX;
+                        const dy = (e.clientY - rect.top) - this.lastMouseY;
+                        this.panX += dx; this.panY += dy;
+                        this.lastMouseX = e.clientX - rect.left; this.lastMouseY = e.clientY - rect.top;
+                        this.render();
+                    };
+                    const handleMouseUp = () => {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                        this.canvas.style.cursor = 'grab';
+                    };
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                });
+
+                // Zoom (wheel)
+                this.canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const rect = this.canvas.getBoundingClientRect();
+                    const mx = e.clientX - rect.left;
+                    const my = e.clientY - rect.top;
+                    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+                    const oldZoom = this.zoom;
+                    this.zoom = Math.max(0.5, Math.min(5, this.zoom * factor));
+                    // zoom towards mouse
+                    this.panX = mx - (mx - this.panX) * (this.zoom / oldZoom);
+                    this.panY = my - (my - this.panY) * (this.zoom / oldZoom);
+                    this.render();
+                });
+
+                // Click to select cell
+                this.canvas.addEventListener('click', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const mx = e.clientX - rect.left;
+                    const my = e.clientY - rect.top;
+                    const hit = this.hitTest(mx, my);
+                    if (hit && hit.cell) {
+                        handleCellClick(hit.cell, null);
+                    }
+                });
+            }
+
+            hitTest(mx, my) {
+                // transform mouse coords to world coords
+                const wx = (mx - this.panX) / this.zoom;
+                const wy = (my - this.panY) / this.zoom;
+
+                // linear search (can optimize with spatial index if needed)
+                for (let cellData of this.cells) {
+                    if (wx >= cellData.x && wx <= cellData.x + cellData.w &&
+                        wy >= cellData.y && wy <= cellData.y + cellData.h) {
+                        return cellData;
+                    }
+                }
+                return null;
+            }
+
+            render() {
+                this.ctx.save();
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.translate(this.panX, this.panY);
+                this.ctx.scale(this.zoom, this.zoom);
+
+                // Draw cells (virtualization: only visible ones)
+                const viewBox = {
+                    x: -this.panX / this.zoom,
+                    y: -this.panY / this.zoom,
+                    w: this.canvas.width / this.zoom,
+                    h: this.canvas.height / this.zoom
+                };
+                const margin = Math.max(this.cellW, this.cellH) + 20;
+
+                for (let cellData of this.cells) {
+                    // Check if in viewport
+                    if (cellData.x + cellData.w < viewBox.x - margin ||
+                        cellData.x > viewBox.x + viewBox.w + margin ||
+                        cellData.y + cellData.h < viewBox.y - margin ||
+                        cellData.y > viewBox.y + viewBox.h + margin) {
+                        continue; // skip, not visible
+                    }
+
+                    // Draw cell
+                    this.ctx.fillStyle = this.getColor(cellData.status);
+                    this.ctx.fillRect(cellData.x, cellData.y, cellData.w, cellData.h);
+                    this.ctx.strokeStyle = '#ccc';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.strokeRect(cellData.x, cellData.y, cellData.w, cellData.h);
+
+                    // Draw label
+                    this.ctx.fillStyle = '#333';
+                    this.ctx.font = '9px sans-serif';
+                    this.ctx.textAlign = 'left';
+                    this.ctx.textBaseline = 'bottom';
+                    this.ctx.fillText(cellData.pos, cellData.x + 2, cellData.y + cellData.h - 1);
+                }
+
+                // Draw section labels
+                const sections = Object.keys(warehousesData[this.alley] || {}).sort((a,b) => parseInt(a) - parseInt(b));
+                sections.forEach((section, sIdx) => {
+                    const baseX = sIdx * (3 * (this.cellW + this.gap) + this.sectionGap) + 10;
+                    if (baseX > viewBox.x - 50 && baseX < viewBox.x + viewBox.w + 50) {
+                        this.ctx.fillStyle = '#333';
+                        this.ctx.font = 'bold 11px sans-serif';
+                        this.ctx.textAlign = 'left';
+                        this.ctx.textBaseline = 'top';
+                        this.ctx.fillText(`С${section}`, baseX, 12);
+                    }
+                });
+
+                this.ctx.restore();
+
+                // Draw zoom/pan hint
+                this.ctx.fillStyle = '#666';
+                this.ctx.font = '11px sans-serif';
+                this.ctx.fillText(`Zoom: ${this.zoom.toFixed(1)}x (🖱 колесо для масштаб., перетащить для сдвиг)`, 10, this.canvas.height - 8);
+            }
+
+            refresh() {
+                if (warehousesData[this.alley]) {
+                    this.buildCellIndex(this.alley);
+                    this.render();
+                }
+            }
+
+            reset() {
+                this.panX = 0; this.panY = 0; this.zoom = 1;
+                this.render();
+            }
+        }
+
+        let topologyRenderer = null;
+
+        function toggleTopologyView() {
+            const container = document.getElementById('topology-container');
+            const btn = document.getElementById('topology-btn');
+            if (!container) return;
+            const isShown = container.style.display === 'block';
+            if (isShown) {
+                container.style.display = 'none';
+                if (btn) btn.classList.remove('active');
+            } else {
+                container.style.display = 'block';
+                if (btn) btn.classList.add('active');
+                document.getElementById('topology-alley').textContent = currentAlley;
+                if (!topologyRenderer) {
+                    topologyRenderer = new CanvasTopology('topology-svg-wrapper');
+                }
+                topologyRenderer.init(currentAlley);
+            }
+        }
+
+        function findCellById(cellId) {
+            for (const alley in warehousesData) {
+                for (const section in warehousesData[alley]) {
+                    const cell = warehousesData[alley][section].cells.find(c => c.id === cellId);
+                    if (cell) return cell;
+                }
+            }
+            return null;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const topologyBtn = document.getElementById('topology-btn');
+            if (topologyBtn) topologyBtn.addEventListener('click', toggleTopologyView);
+            const topologyClose = document.getElementById('topology-close-btn');
+            if (topologyClose) topologyClose.addEventListener('click', () => { document.getElementById('topology-container').style.display = 'none'; topologyRenderer?.reset(); });
+            const topologyRefresh = document.getElementById('topology-refresh-btn');
+            if (topologyRefresh) topologyRefresh.addEventListener('click', () => { topologyRenderer?.refresh(); });
+        });
     </script>
 
 <script>
