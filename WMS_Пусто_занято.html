@@ -1475,18 +1475,64 @@
             let zoneIndex = -1;
             let barcodeIndex = -1;
             let placementDateIndex = -1;
-            
+
+            const normalizeHeader = (value) => String(value || '')
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .trim();
+
             // Ищем оптимальную строку заголовка по количеству совпадений ключевых слов
             const keywords = {
-                cellName: ['название', 'ячейки', 'ячейка', 'cell', 'адрес'],
-                status: ['статус', 'status', 'занято', 'свободно'],
-                alley: ['алле', 'номер аллеи', 'alley', 'aisle'],
-                article: ['артикул', 'article', 'sku', 'код товара'],
-                product: ['название товара', 'product', 'item', 'товар', 'наименование'],
-                division: ['дивизион', 'division'],
-                zone: ['зона', 'zone'],
-                barcode: ['шк', 'штрих', 'barcode', 'bar code', 'штрихкод'],
-                placementDate: ['дата размещ', 'placement date', 'date placed']
+                cellName: [
+                    '\u044f\u0447\u0435\u0439\u043a\u0430', // ячейка
+                    '\u044f\u0447\u0435\u0439\u043a\u0438', // ячейки
+                    '\u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435', // название
+                    '\u0430\u0434\u0440\u0435\u0441', // адрес
+                    'cell',
+                    'address'
+                ],
+                status: [
+                    '\u0441\u0442\u0430\u0442\u0443\u0441', // статус
+                    '\u0437\u0430\u043d\u044f\u0442', // занят
+                    '\u0441\u0432\u043e\u0431\u043e\u0434', // свобод
+                    'status',
+                    'occupied',
+                    'empty'
+                ],
+                alley: [
+                    '\u0430\u043b\u043b\u0435', // алле
+                    '\u0430\u043b\u043b\u0435\u044f', // аллея
+                    '\u043d\u043e\u043c\u0435\u0440 \u0430\u043b\u043b\u0435\u0438', // номер аллеи
+                    'alley',
+                    'aisle'
+                ],
+                article: [
+                    '\u0430\u0440\u0442\u0438\u043a\u0443\u043b', // артикул
+                    '\u043a\u043e\u0434 \u0442\u043e\u0432\u0430\u0440\u0430', // код товара
+                    'article',
+                    'sku'
+                ],
+                product: [
+                    '\u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0442\u043e\u0432\u0430\u0440\u0430', // название товара
+                    '\u043d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435', // наименование
+                    '\u0442\u043e\u0432\u0430\u0440', // товар
+                    'product',
+                    'item'
+                ],
+                division: ['\u0434\u0438\u0432\u0438\u0437\u0438\u043e\u043d', 'division'],
+                zone: ['\u0437\u043e\u043d\u0430', 'zone'],
+                barcode: [
+                    '\u0448\u043a', // шк
+                    '\u0448\u0442\u0440\u0438\u0445', // штрих
+                    '\u0448\u0442\u0440\u0438\u0445\u043a\u043e\u0434', // штрихкод
+                    'barcode',
+                    'bar code'
+                ],
+                placementDate: [
+                    '\u0434\u0430\u0442\u0430 \u0440\u0430\u0437\u043c\u0435\u0449', // дата размещ
+                    'placement date',
+                    'date placed'
+                ]
             };
 
             let bestMatchCount = 0;
@@ -1499,7 +1545,7 @@
                 let tmpDivision = -1, tmpZone = -1, tmpBarcode = -1, tmpPlacementDate = -1;
 
                 for (let j = 0; j < row.length; j++) {
-                    const cellValue = String(row[j] || '').toLowerCase().trim();
+                    const cellValue = normalizeHeader(row[j]);
                     
                     if (keywords.cellName.some(k => cellValue.includes(k))) { tmpCellName = j; matchCount++; }
                     if (keywords.status.some(k => cellValue.includes(k))) { tmpStatus = j; matchCount++; }
@@ -1534,31 +1580,16 @@
                     const row = xlsData[i];
                     if (Array.isArray(row)) {
                         for (let j = 0; j < row.length; j++) {
-                            const cellValue = String(row[j] || '').toLowerCase();
-                            if (cellValue.includes('название') && cellValue.includes('ячейки')) {
-                                cellNameIndex = j;
-                            }
-                            if (cellValue.includes('статус')) {
-                                statusIndex = j;
-                            }
-                            if (cellValue.includes('алле') || cellValue.includes('номер аллеи')) {
-                                alleyIndex = j;
-                            }
-                            if (cellValue.includes('артикул') || cellValue.includes('article')) {
-                                articleIndex = j;
-                            }
-                            if (cellValue.includes('дивизион')) {
-                                divisionIndex = j;
-                            }
-                            if (cellValue.includes('зона')) {
-                                zoneIndex = j;
-                            }
-                            if (cellValue.includes('шк') || cellValue.includes('штрих') || cellValue.includes('barcode')) {
-                                barcodeIndex = j;
-                            }
-                            if (cellValue.includes('дата размещ')) {
-                                placementDateIndex = j;
-                            }
+                            const cellValue = normalizeHeader(row[j]);
+                            if (keywords.cellName.some(k => cellValue.includes(k))) cellNameIndex = j;
+                            if (keywords.status.some(k => cellValue.includes(k))) statusIndex = j;
+                            if (keywords.alley.some(k => cellValue.includes(k))) alleyIndex = j;
+                            if (keywords.article.some(k => cellValue.includes(k))) articleIndex = j;
+                            if (keywords.product.some(k => cellValue.includes(k))) productIndex = j;
+                            if (keywords.division.some(k => cellValue.includes(k))) divisionIndex = j;
+                            if (keywords.zone.some(k => cellValue.includes(k))) zoneIndex = j;
+                            if (keywords.barcode.some(k => cellValue.includes(k))) barcodeIndex = j;
+                            if (keywords.placementDate.some(k => cellValue.includes(k))) placementDateIndex = j;
                         }
 
                         if (cellNameIndex !== -1 && statusIndex !== -1) {
@@ -1599,7 +1630,10 @@
                     }
                     
                     // Преобразуем название ячейки в формат системы
-                    const parsedCell = parseCellName(cellName, alley);
+                    let parsedCell = parseCellName(cellName, alley);
+                    if (!parsedCell && barcode) {
+                        parsedCell = parseCellName(barcode, alley);
+                    }
                     
                     if (!parsedCell) {
                         errors.push(`Строка ${i+1}: неверный формат названия ячейки: ${cellName}`);
@@ -1677,88 +1711,143 @@
 
         // Парсинг названия ячейки
         function parseCellName(cellName, alleyFromData) {
-            // Пример формата: "OS A5-15-11-C"
-            // Или: "OS A 005 011 045"
-            
-            const cleanedName = cellName.replace(/\s+/g, ' ').trim();
-            
-            // Паттерн 1: OS A5-15-11-C
-            const pattern1 = /OS\s+([A-Z])(\d{1,2})-(\d{1,2})-(\d{1,2})-([A-C])/i;
-            // Паттерн 2: OS A 005 011 045
-            const pattern2 = /OS\s+([A-Z])\s+(\d{3})\s+(\d{3})\s+(\d{3})/i;
-            
+            if (!cellName) return null;
+
+            const raw = String(cellName).trim();
+            if (!raw) return null;
+
+            const cleanedWithSpaces = raw.replace(/\s+/g, ' ').trim();
+            const cleaned = raw.replace(/\s+/g, '').toUpperCase();
+
+            const pattern1 = /OS\s*([A-Z])(\d{1,2})-(\d{1,2})-(\d{1,2})-([A-C])/i;
+            const pattern2 = /OS\s*([A-Z]{1,2})\s+(\d{3})\s+(\d{3})\s+(\d{3})/i;
+            const compactPattern = /OS([A-Z]{1,3})(\d{6,})/i;
+
             let alley = '';
             let section = '';
             let tier = '';
             let position = '';
-            
-            const match1 = cleanedName.match(pattern1);
-            const match2 = cleanedName.match(pattern2);
-            
+
+            const match1 = cleanedWithSpaces.match(pattern1);
+            const match2 = cleanedWithSpaces.match(pattern2);
+
             if (match1) {
-                alley = match1[1].toUpperCase() + match1[2].padStart(2, '0'); // A5 → A05
-                section = match1[3].padStart(2, '0'); // 15 → 15
-                tier = match1[4].padStart(2, '0'); // 11 → 11
-                position = match1[5].toUpperCase(); // C → C
+                alley = match1[1].toUpperCase() + match1[2].padStart(2, '0');
+                section = match1[3].padStart(2, '0');
+                tier = match1[4].padStart(2, '0');
+                position = match1[5].toUpperCase();
             } else if (match2) {
-                alley = match2[1].toUpperCase() + match2[2].padStart(2, '0').slice(-2); // 005 → 05
-                section = match2[3].padStart(2, '0'); // 011 → 11
-                tier = match2[4].padStart(2, '0'); // 045 → 45
-                // Для формата с глубиной определяем позицию по глубине
-                const depth = parseInt(match2[4]);
-                position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
+                const letters = match2[1].toUpperCase();
+                const alleyLetter = letters.slice(-1);
+                const g1 = match2[2];
+                const g2 = match2[3];
+                const g3 = match2[4];
+
+                alley = alleyLetter + g1.slice(-2);
+                section = g2.slice(-2);
+
+                const depth = parseInt(g3, 10);
+                const mapped = mapDepthToTierPosition(depth);
+                tier = mapped.tier;
+                position = mapped.position;
             } else {
-                // Если не удалось распарсить по шаблонам, используем аллею из данных
-                if (alleyFromData) {
-                    const alleyMatch = alleyFromData.match(/([A-Z])(\d{1,2})/i);
+                const compactMatch = cleaned.match(compactPattern);
+                if (compactMatch) {
+                    const letters = compactMatch[1].toUpperCase();
+                    const digits = compactMatch[2];
+                    const alleyLetter = letters.slice(-1);
+
+                    if (digits.length >= 9) {
+                        const g1 = digits.slice(0, 3);
+                        const g2 = digits.slice(3, 6);
+                        const g3 = digits.slice(6, 9);
+
+                        alley = alleyLetter + g1.slice(-2);
+                        section = g2.slice(-2);
+
+                        const depth = parseInt(g3, 10);
+                        const mapped = mapDepthToTierPosition(depth);
+                        tier = mapped.tier;
+                        position = mapped.position;
+                    } else if (digits.length >= 6) {
+                        const depth = digits.slice(-3);
+                        const t = digits.slice(-6, -3);
+                        const s = digits.slice(0, digits.length - 6);
+
+                        section = (s || '').padStart(2, '0').slice(-2);
+                        tier = (t || '0').padStart(2, '0').slice(-2);
+                        const depthNum = parseInt(depth, 10);
+                        position = depthNum <= 49 ? 'A' : depthNum <= 50 ? 'B' : 'C';
+
+                        if (letters.length > 0) {
+                            alley = alleyLetter + '01';
+                        }
+                    }
+                } else if (alleyFromData) {
+                    const alleyMatch = String(alleyFromData).match(/([A-Z])(\d{1,2})/i);
                     if (alleyMatch) {
                         alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
-                        
-                        // Пытаемся извлечить данные из названия другими способами
-                        const numbers = cellName.match(/\d+/g);
+
+                        const numbers = raw.match(/\d+/g);
                         if (numbers && numbers.length >= 3) {
                             section = numbers[0].padStart(2, '0').slice(-2);
                             tier = numbers[1].padStart(2, '0').slice(-2);
-                            position = numbers[2] === '49' ? 'A' : numbers[2] === '50' ? 'B' : 'C';
+                            const depthNum = parseInt(numbers[2], 10);
+                            position = depthNum <= 49 ? 'A' : depthNum <= 50 ? 'B' : 'C';
                         }
                     }
                 }
-                
-                if (!alley) {
-                    return null;
-                }
             }
-            
-            // Валидация данных
-            if (!alley.match(/^A\d{2}$/) || 
-                !section.match(/^\d{2}$/) || 
-                !tier.match(/^\d{2}$/) || 
+
+            if (!alley || !section || !tier || !position) {
+                return null;
+            }
+
+            if (!alley.match(/^A\d{2}$/) ||
+                !section.match(/^\d{2}$/) ||
+                !tier.match(/^\d{2}$/) ||
                 !['A', 'B', 'C'].includes(position)) {
                 return null;
             }
-            
-            return {
-                alley: alley,
-                section: section,
-                tier: tier,
-                position: position
-            };
+
+            return { alley, section, tier, position };
         }
 
-        // Преобразование статуса
-        function convertStatus(status) {
-            const statusLower = status.toLowerCase();
-            
-            if (statusLower.includes('свобод') || statusLower.includes('пуст') || statusLower === 'empty') {
-                return 'empty';
-            } else if (statusLower.includes('занят') || statusLower.includes('заполн') || statusLower === 'occupied') {
-                return 'occupied';
-            } else {
-                return 'unknown';
+        function mapDepthToTierPosition(depth) {
+            if (!depth || Number.isNaN(depth)) {
+                return { tier: '', position: '' };
             }
+
+            const posIndex = (depth - 1) % 3;
+            const position = ['A', 'B', 'C'][posIndex];
+
+            let tier = '';
+            if (depth <= 7) tier = '01';
+            else if (depth <= 15) tier = '02';
+            else if (depth <= 23) tier = '03';
+            else if (depth <= 31) tier = '10';
+            else if (depth <= 39) tier = '11';
+            else if (depth <= 47) tier = '12';
+            else if (depth <= 55) tier = '13';
+            else if (depth <= 62) tier = '14';
+            else tier = '15';
+
+            return { tier, position };
         }
 
-        // Применение данных WMS к warehousesData
+        function convertStatus(status) {
+            const statusLower = String(status || '').toLowerCase();
+            const has = (s) => statusLower.includes(s);
+
+            if (has('\u0441\u0432\u043e\u0431\u043e\u0434') || has('\u043f\u0443\u0441\u0442') || has('empty')) {
+                return 'empty';
+            }
+            if (has('\u0437\u0430\u043d\u044f\u0442') || has('\u0437\u0430\u043f\u043e\u043b\u043d') || has('occupied')) {
+                return 'occupied';
+            }
+            return 'unknown';
+        }
+
         function applyWMSDataToWarehouse() {
             console.log('Применение данных WMS...');
 
