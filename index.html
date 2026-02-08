@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Система проверки склада - с интеграцией XLS</title>
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="description" content="Система проверки складских ячеек">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Система проверки склада v2.0</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -19,7 +25,6 @@
             --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             --transition: all 0.3s ease;
         }
-
         * {
             margin: 0;
             padding: 0;
@@ -34,6 +39,81 @@
             line-height: 1.6;
             height: 100vh;
             overflow: hidden;
+        }
+
+        /* ========== PWA Install Banner ========== */
+        .pwa-install-banner {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            z-index: 5000;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .pwa-install-banner.show {
+            display: flex;
+        }
+
+        .pwa-install-text {
+            flex: 1;
+        }
+
+        .pwa-install-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .pwa-install-desc {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .pwa-install-btn {
+            background: white;
+            color: var(--primary-color);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .pwa-close-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        /* ========== Offline indicator ========== */
+        .offline-indicator {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--warning-color);
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-weight: 600;
+            z-index: 6000;
+        }
+
+        .offline-indicator.show {
+            display: block;
         }
 
         /* ========== РЕЖИМ ОБЩЕГО ОБЗОРА ========== */
@@ -64,6 +144,36 @@
             font-size: 1.4rem;
             font-weight: 700;
             color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .version-badge {
+            font-size: 0.7rem;
+            background: var(--secondary-color);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        /* Articles count badge on cell */
+        .cell-articles-badge {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            border-radius: 10px;
+            z-index: 5;
+            font-weight: 700;
+        }
+
+        .cell-articles-badge.attention {
+            background: var(--warning-color);
+            color: #1a1a1a;
         }
 
         .operator-info {
@@ -79,6 +189,139 @@
             font-size: 0.9rem;
             min-width: 150px;
         }
+
+        /* ========== ПОИСК ========== */
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 2px solid #e1e8ed;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #95a5a6;
+            font-size: 1.1rem;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 14px;
+            border: 2px solid #e1e8ed;
+            border-radius: var(--border-radius);
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .filter-btn.active {
+            background: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: white;
+        }
+
+        .filter-btn.filter-discrepancy.active {
+            background: var(--warning-color);
+            border-color: var(--warning-color);
+        }
+
+        .filter-btn.filter-problem.active {
+            background: var(--info-color);
+            border-color: var(--info-color);
+        }
+
+        .filter-btn.filter-unchecked.active {
+            background: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        /* Search results dropdown */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .search-results.show {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f1f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-result-item:hover {
+            background: #f8fafc;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-address {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .search-result-status {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .search-result-status.empty { background: #e8f5e9; color: #2e7d32; }
+        .search-result-status.occupied { background: #fff3e0; color: #ef6c00; }
+        .search-result-status.discrepancy { background: #fff8e1; color: #f9a825; }
+        .search-result-status.problem { background: #f3e5f5; color: #7b1fa2; }
 
         .control-content {
             display: flex;
@@ -149,7 +392,7 @@
         .discrepancy-stat .stat-value { color: var(--warning-color); }
         .problem-stat .stat-value { color: var(--info-color); }
 
-        /* Новые кнопки управления */
+        /* Кнопки управления */
         .control-buttons {
             display: flex;
             flex-wrap: wrap;
@@ -167,7 +410,11 @@
             transition: var(--transition);
             font-size: 0.9rem;
             flex: 1;
-            min-width: 120px;
+            min-width: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         .start-inspection-btn {
@@ -197,6 +444,16 @@
 
         .export-btn:hover {
             background-color: #e67e22;
+            transform: translateY(-2px);
+        }
+
+        .history-btn {
+            background-color: var(--dark-color);
+            color: white;
+        }
+
+        .history-btn:hover {
+            background-color: #2c3e50;
             transform: translateY(-2px);
         }
 
@@ -240,6 +497,11 @@
         .section-card.active {
             border-color: var(--secondary-color);
             background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .section-card.filtered-out {
+            opacity: 0.3;
+            pointer-events: none;
         }
 
         .section-card-header {
@@ -465,6 +727,17 @@
             color: #777;
         }
 
+        .inspection-cell-photo-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.6rem;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+
         /* Цвета состояний ячеек */
         .inspection-cell-unchecked {
             background-color: var(--success-color);
@@ -489,6 +762,24 @@
         .inspection-cell-skipped {
             background-color: #95a5a6;
             color: white;
+        }
+
+        /* WMS import status visualization */
+        .inspection-cell-wms-occupied {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.3), rgba(231, 76, 60, 0.5)) !important;
+            border: 3px solid var(--danger-color) !important;
+            box-shadow: inset 0 0 8px rgba(231, 76, 60, 0.6), 0 0 8px rgba(231, 76, 60, 0.4) !important;
+        }
+
+        .inspection-cell-wms-empty {
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.3), rgba(39, 174, 96, 0.5)) !important;
+            border: 3px solid var(--success-color) !important;
+            box-shadow: inset 0 0 8px rgba(39, 174, 96, 0.6), 0 0 8px rgba(39, 174, 96, 0.4) !important;
+        }
+
+        .inspection-cell-wms-unknown {
+            border: 3px dashed #95a5a6 !important;
+            box-shadow: inset 0 0 4px rgba(149, 165, 166, 0.3) !important;
         }
 
         .pulse {
@@ -536,6 +827,7 @@
             border-radius: 50%;
             background-color: rgba(0, 0, 0, 0.1);
             transition: var(--transition);
+            cursor: pointer;
         }
 
         .swipe-indicator.active {
@@ -598,7 +890,7 @@
             right: 15px;
         }
 
-        /* Модальное окно */
+        /* ========== МОДАЛЬНОЕ ОКНО ========== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -624,6 +916,8 @@
             width: 100%;
             max-width: 400px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-title {
@@ -642,6 +936,40 @@
             padding: 10px;
             background-color: #f8fafc;
             border-radius: var(--border-radius);
+        }
+
+        .modal-info-block {
+            margin-bottom: 15px;
+            padding: 12px;
+            background-color: #f0f4f8;
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .modal-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .modal-info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-info-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            min-width: 120px;
+        }
+
+        .modal-info-value {
+            color: #333;
+            word-wrap: break-word;
+            flex: 1;
+            text-align: right;
         }
 
         .modal-options {
@@ -690,6 +1018,67 @@
             font-size: 1rem;
         }
 
+        /* Фото секция в модальном окне */
+        .modal-photo-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: var(--border-radius);
+        }
+
+        .modal-photo-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .photo-preview-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .photo-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 6px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid #ddd;
+        }
+
+        .photo-preview:hover {
+            border-color: var(--secondary-color);
+        }
+
+        .photo-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .photo-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px dashed var(--secondary-color);
+            border-radius: var(--border-radius);
+            background: white;
+            color: var(--secondary-color);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+
+        .photo-btn:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+
         .modal-buttons {
             display: flex;
             justify-content: flex-end;
@@ -704,6 +1093,148 @@
             border-radius: var(--border-radius);
             cursor: pointer;
             font-weight: 600;
+        }
+
+        /* ========== МОДАЛЬНОЕ ОКНО ИСТОРИИ ========== */
+        .history-modal {
+            max-width: 600px;
+        }
+
+        .history-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .history-filter-input {
+            flex: 1;
+            min-width: 150px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 12px;
+            border-bottom: 1px solid #f1f1f1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item-cell {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .history-item-time {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .history-item-details {
+            display: flex;
+            gap: 10px;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .history-item-status {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .history-item-operator {
+            color: #64748b;
+        }
+
+        .history-item-photo {
+            color: var(--info-color);
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .history-export-btn {
+            width: 100%;
+            margin-top: 15px;
+            padding: 12px;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ========== МОДАЛЬНОЕ ОКНО ПРОСМОТРА ФОТО ========== */
+        .photo-viewer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .photo-viewer-overlay.show {
+            display: flex;
+        }
+
+        .photo-viewer-img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .photo-viewer-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .photo-viewer-delete {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
         }
 
         /* Уведомление */
@@ -895,12 +1426,12 @@
             .carousel-nav {
                 display: block;
             }
-            
+
             .inspection-cell {
                 width: 70px;
                 height: 70px;
             }
-            
+
             .inspection-rack {
                 max-width: 600px;
             }
@@ -911,56 +1442,113 @@
                 width: 50px;
                 height: 50px;
             }
-            
+
             .inspection-cell-address {
                 font-size: 0.7rem;
             }
-            
+
             .inspection-tier-label {
                 width: 40px;
                 font-size: 0.8rem;
             }
-            
+
             .control-header {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            
+
             .global-stats {
                 width: 100%;
                 justify-content: space-between;
             }
-            
+
             .stat-item {
                 min-width: 80px;
                 padding: 6px 8px;
             }
-            
+
             .sections-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .control-buttons {
                 flex-direction: column;
             }
-            
+
             .control-btn {
                 width: 100%;
             }
+
+            .filter-buttons {
+                width: 100%;
+            }
+
+            .filter-btn {
+                flex: 1;
+                text-align: center;
+            }
+
+            /* Topology container styles */
+            #topology-container { box-sizing: border-box; }
+            #topology-svg-wrapper svg { width: 100%; height: 100%; display: block; }
         }
     </style>
 </head>
 <body>
+    <!-- Offline indicator -->
+    <div class="offline-indicator" id="offline-indicator">
+        Нет подключения к интернету. Данные сохраняются локально.
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div class="pwa-install-banner" id="pwa-install-banner">
+        <div class="pwa-install-text">
+            <div class="pwa-install-title">Установить приложение</div>
+            <div class="pwa-install-desc">Работайте офлайн прямо с главного экрана</div>
+        </div>
+        <button class="pwa-install-btn" id="pwa-install-btn">Установить</button>
+        <button class="pwa-close-btn" id="pwa-close-btn">&times;</button>
+    </div>
+
     <!-- РЕЖИМ ОБЩЕГО ОБЗОРА -->
     <div class="overview-mode" id="overview-mode">
         <!-- Панель управления -->
         <div class="control-panel">
             <div class="control-header">
-                <h1 class="app-title">📦 Проверка складских ячеек</h1>
+                <h1 class="app-title">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    Проверка склада
+                    <span class="version-badge" id="version-badge">v2.0 • build e0f8b74 • 08.02.2026</span>
+                </h1>
                 <div class="operator-info">
                     <input type="text" id="operator-name" class="operator-name" placeholder="Имя оператора" maxlength="50">
                 </div>
             </div>
+
+            <!-- Поиск и фильтры -->
+            <div class="search-container">
+                <div class="search-input-wrapper">
+                    <span class="search-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </span>
+                    <input type="text" id="search-input" class="search-input" placeholder="Поиск ячейки (например: A01-05-11-B)">
+                    <div class="search-results" id="search-results"></div>
+                </div>
+                <div class="filter-buttons">
+                    <button class="filter-btn filter-all active" data-filter="all">Все</button>
+                    <button class="filter-btn filter-unchecked" data-filter="unchecked">Не проверены</button>
+                    <button class="filter-btn filter-discrepancy" data-filter="discrepancy">Расхождения</button>
+                    <button class="filter-btn filter-problem" data-filter="problem">Проблемы</button>
+                </div>
+            </div>
+
             <div class="control-content">
                 <div class="alley-selector">
                     <span class="alley-label">Аллея:</span>
@@ -989,13 +1577,28 @@
             </div>
             <div class="control-buttons">
                 <button class="control-btn start-inspection-btn" id="start-inspection-btn">
-                    ▶ Начать проверку
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Начать проверку
                 </button>
                 <button class="control-btn import-btn" id="import-btn">
-                    📁 Загрузить XLS
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Загрузить XLS
                 </button>
                 <button class="control-btn export-btn" id="export-btn">
-                    💾 Экспорт CSV
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Экспорт CSV
+                </button>
+                <button class="control-btn history-btn" id="history-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    История
+                </button>
+                <button class="control-btn" id="topology-btn" title="Показать топологию склада">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    Топология
+                </button>
+                <button class="control-btn" id="reset-inspection-btn" title="Сброс выполнения проверки">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><path d="M21 12a9 9 0 1 1-3.36-6.36L21 12z"/></svg>
+                    Сброс проверки
                 </button>
             </div>
         </div>
@@ -1007,35 +1610,37 @@
                 <!-- Карточки секций будут добавлены через JS -->
             </div>
         </div>
+
+            <!-- Topology container (hidden by default) -->
+            <div id="topology-container" style="display:none; padding:12px; background: white; border-radius:8px; margin: 12px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <strong>Топология — аллея <span id="topology-alley">A01</span></strong>
+                    <div>
+                        <button class="modal-btn secondary" id="topology-refresh-btn">Обновить</button>
+                        <button class="modal-btn" id="topology-close-btn">Закрыть</button>
+                    </div>
+                </div>
+                <div id="topology-svg-wrapper" style="width:100%; height:420px; overflow:auto;">
+                    <!-- SVG will be injected here -->
+                </div>
+            </div>
     </div>
 
     <!-- РЕЖИМ ПРОВЕРКИ НА ВЕСЬ ЭКРАН -->
     <div class="inspection-mode" id="inspection-mode">
-        <!-- Заголовок проверки -->
         <div class="inspection-header">
             <div class="inspection-title" id="inspection-alley-title">Аллея A01 - Проверка</div>
             <button class="exit-inspection-btn" id="exit-inspection-btn">
-                ← Завершить проверку
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 5px;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Завершить
             </button>
         </div>
 
-        <!-- Карусель секций -->
         <div class="inspection-carousel-container" id="carousel-container">
-            <!-- Карусель -->
-            <div class="inspection-sections-carousel" id="sections-carousel">
-                <!-- Секции будут добавлены через JS -->
-            </div>
-
-            <!-- Навигационные стрелки (для десктопа) -->
-            <button class="carousel-nav prev" id="carousel-prev">‹</button>
-            <button class="carousel-nav next" id="carousel-next">›</button>
-
-            <!-- Индикаторы свайпа -->
-            <div class="swipe-indicators" id="swipe-indicators">
-                <!-- Индикаторы будут добавлены через JS -->
-            </div>
-
-            <!-- Подсказка для свайпа -->
+            <div class="inspection-sections-carousel" id="sections-carousel"></div>
+            <button class="carousel-nav prev" id="carousel-prev">&#8249;</button>
+            <button class="carousel-nav next" id="carousel-next">&#8250;</button>
+            <div class="swipe-indicators" id="swipe-indicators"></div>
             <div class="swipe-hint" id="swipe-hint">Свайпните влево или вправо для навигации</div>
         </div>
     </div>
@@ -1045,26 +1650,99 @@
         <div class="modal">
             <h3 class="modal-title">Состояние ячейки</h3>
             <div class="modal-address" id="modal-address">A01-01-01-A</div>
+            
+            <!-- Информация о статусе и артикулах -->
+            <div class="modal-info-block">
+                <div class="modal-info-row">
+                    <span class="modal-info-label">Статус WMS:</span>
+                    <span class="modal-info-value" id="modal-status">-</span>
+                </div>
+                <div class="modal-info-row">
+                    <span class="modal-info-label">Артикулы:</span>
+                    <span class="modal-info-value" id="modal-articles">Нет данных</span>
+                </div>
+            </div>
+
+            <!-- Секция фото -->
+            <div class="modal-photo-section">
+                <div class="modal-photo-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 5px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Фото ячейки
+                </div>
+                <div class="photo-preview-container" id="photo-preview-container">
+                    <!-- Превью фото будут здесь -->
+                </div>
+                <div class="photo-buttons">
+                    <button class="photo-btn" id="take-photo-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Сделать фото
+                    </button>
+                    <button class="photo-btn" id="upload-photo-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Загрузить
+                    </button>
+                </div>
+                <input type="file" id="photo-file-input" accept="image/*" style="display:none">
+                <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
+            </div>
+
             <div class="modal-options">
                 <div class="modal-option empty" data-status="checked-empty">
-                    <span class="option-icon">✓</span>
+                    <span class="option-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
                     <span>Фактически пустая</span>
                 </div>
                 <div class="modal-option occupied" data-status="discrepancy">
-                    <span class="option-icon">⚠</span>
+                    <span class="option-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </span>
                     <span>Фактически занята</span>
                 </div>
                 <div class="modal-option problem" data-status="problem">
-                    <span class="option-icon">!</span>
+                    <span class="option-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </span>
                     <span>Другая проблема</span>
                 </div>
                 <div class="modal-option skip" data-status="skipped">
-                    <span class="option-icon">→</span>
+                    <span class="option-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </span>
                     <span>Пропустить</span>
                 </div>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" id="modal-cancel">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно истории -->
+    <div class="modal-overlay" id="history-modal-overlay">
+        <div class="modal history-modal">
+            <h3 class="modal-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                История изменений
+            </h3>
+
+            <div class="history-filters">
+                <input type="text" id="history-filter-cell" class="history-filter-input" placeholder="Фильтр по ячейке">
+                <input type="date" id="history-filter-date" class="history-filter-input">
+            </div>
+
+            <div class="history-list" id="history-list">
+                <!-- История будет здесь -->
+            </div>
+
+            <button class="history-export-btn" id="history-export-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Экспорт истории
+            </button>
+
+            <div class="modal-buttons-row">
+                <button class="modal-btn secondary" id="history-clear-btn">Очистить историю</button>
+                <button class="modal-btn primary" id="history-close-btn">Закрыть</button>
             </div>
         </div>
     </div>
@@ -1075,33 +1753,41 @@
             <h3 class="modal-title">Загрузка данных из XLS файла</h3>
             <div class="import-content">
                 <div class="import-dropzone" id="import-dropzone">
-                    <div class="import-dropzone-icon">📁</div>
+                    <div class="import-dropzone-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
                     <div class="import-dropzone-text">Перетащите XLS/XLSX файл сюда</div>
                     <div class="import-dropzone-hint">или нажмите для выбора файла</div>
                     <input type="file" id="xls-file-input" class="import-file-input" accept=".xls,.xlsx,.csv">
                 </div>
-                
+
                 <div class="import-file-name" id="import-file-name">
                     <span id="selected-file-name">Файл не выбран</span>
-                    <button class="modal-btn secondary" id="clear-file-btn">✕</button>
+                    <button class="modal-btn secondary" id="clear-file-btn">&times;</button>
                 </div>
-                
+
                 <div class="import-progress" id="import-progress">
                     <div class="import-progress-bar" id="import-progress-bar"></div>
                 </div>
-                
+
                 <div class="import-status" id="import-status">
                     <div class="import-status-title">Результаты импорта:</div>
-                    <ul class="import-status-list" id="import-status-list">
-                        <!-- Статус будет добавляться динамически -->
-                    </ul>
+                    <ul class="import-status-list" id="import-status-list"></ul>
                 </div>
             </div>
             <div class="modal-buttons-row">
                 <button class="modal-btn secondary" id="import-cancel-btn">Отмена</button>
+                <button class="modal-btn" id="import-apply-btn" disabled>OK Применить</button>
                 <button class="modal-btn primary" id="import-start-btn" disabled>Загрузить данные</button>
             </div>
         </div>
+    </div>
+
+    <!-- Просмотр фото -->
+    <div class="photo-viewer-overlay" id="photo-viewer-overlay">
+        <img class="photo-viewer-img" id="photo-viewer-img" src="" alt="Photo">
+        <button class="photo-viewer-close" id="photo-viewer-close">&times;</button>
+        <button class="photo-viewer-delete" id="photo-viewer-delete">Удалить фото</button>
     </div>
 
     <!-- Уведомление -->
@@ -1111,7 +1797,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.mini.min.js"></script>
 
     <script>
-        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ==========
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
         let currentAlley = 'A01';
         let currentSectionIndex = 0;
         let warehousesData = {};
@@ -1119,12 +1805,18 @@
         let selectedCellElement = null;
         let isMobile = window.innerWidth < 768;
         let isInspecting = false;
-        
+        let currentFilter = 'all';
+        let auditLog = [];
+        let currentViewingPhotoIndex = -1;
+
+        // PWA
+        let deferredPrompt = null;
+
         // Данные из XLS файла
         let wmsData = {
             lastImportDate: null,
             fileInfo: null,
-            cellsData: {} // ключ: адрес ячейки (A01-01-01-A), значение: статус из WMS
+            cellsData: {}
         };
 
         // Константы
@@ -1132,27 +1824,71 @@
         const pickingTiers = ['02', '03'];
         const upperTiers = ['10', '11', '12', '13', '14', '15'];
         const positions = ['A', 'B', 'C'];
-        const totalSections = 15;
+        const totalSections = 23;  // Expanded to support alleys with up to 23 sections
+
+        // ========== PWA И OFFLINE ==========
+        // Регистрация Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker зарегистрирован'))
+                    .catch(err => console.log('Ошибка регистрации SW:', err));
+            });
+        }
+
+        // PWA Install Prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('pwa-install-banner').classList.add('show');
+        });
+
+        document.getElementById('pwa-install-btn')?.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log('PWA install:', outcome);
+                deferredPrompt = null;
+                document.getElementById('pwa-install-banner').classList.remove('show');
+            }
+        });
+
+        document.getElementById('pwa-close-btn')?.addEventListener('click', () => {
+            document.getElementById('pwa-install-banner').classList.remove('show');
+        });
+
+        // Offline detection
+        window.addEventListener('online', () => {
+            document.getElementById('offline-indicator').classList.remove('show');
+            showNotification('Подключение восстановлено', 'success');
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById('offline-indicator').classList.add('show');
+            showNotification('Вы работаете офлайн', 'warning');
+        });
+
+        // Check initial state
+        if (!navigator.onLine) {
+            document.getElementById('offline-indicator').classList.add('show');
+        }
 
         // ========== ИНИЦИАЛИЗАЦИЯ ==========
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Инициализация системы...');
+            console.log('Инициализация системы v2.0...');
             initAlleysDropdown();
             generateWarehouseData();
             setupEventListeners();
             updateOverviewDisplay();
-            
-            // Загружаем сохраненные данные
             loadSavedData();
-            
+            loadAuditLog();
             console.log('Система готова к работе');
         });
 
-        // Инициализация выпадающего списка аллей
         function initAlleysDropdown() {
             const alleySelect = document.getElementById('alley-select');
             alleySelect.innerHTML = '';
-            
+
             for (let i = 1; i <= 14; i++) {
                 const alley = `A${i.toString().padStart(2, '0')}`;
                 const option = document.createElement('option');
@@ -1160,18 +1896,17 @@
                 option.textContent = alley;
                 alleySelect.appendChild(option);
             }
-            
+
             alleySelect.value = currentAlley;
         }
 
-        // Генерация тестовых данных
         function generateWarehouseData() {
             warehousesData = {};
-            
+
             for (let alleyNum = 1; alleyNum <= 14; alleyNum++) {
                 const alley = `A${alleyNum.toString().padStart(2, '0')}`;
                 warehousesData[alley] = {};
-                
+
                 for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
                     const section = sectionNum.toString().padStart(2, '0');
                     warehousesData[alley][section] = {
@@ -1179,7 +1914,7 @@
                         checkedTime: null,
                         operator: ''
                     };
-                    
+
                     for (const tier of tierOrder) {
                         for (const position of positions) {
                             const cell = {
@@ -1194,31 +1929,372 @@
                                 checkTime: null,
                                 comment: '',
                                 operator: '',
-                                discrepancy: false
+                                discrepancy: false,
+                                photos: []
                             };
-                            
+
                             warehousesData[alley][section].cells.push(cell);
                         }
                     }
                 }
             }
-            console.log('Данные сгенерированы:', warehousesData[currentAlley]);
+        }
+
+        // ========== ИСТОРИЯ ИЗМЕНЕНИЙ (АУДИТ) ==========
+        function loadAuditLog() {
+            const saved = localStorage.getItem('warehouseAuditLog');
+            if (saved) {
+                try {
+                    auditLog = JSON.parse(saved);
+                } catch (e) {
+                    auditLog = [];
+                }
+            }
+        }
+
+        function saveAuditLog() {
+            try {
+                // Ограничиваем размер лога (последние 1000 записей)
+                if (auditLog.length > 1000) {
+                    auditLog = auditLog.slice(-1000);
+                }
+                localStorage.setItem('warehouseAuditLog', JSON.stringify(auditLog));
+            } catch (e) {
+                console.error('Ошибка сохранения аудит-лога:', e);
+            }
+        }
+
+        function logAction(action, cellId, oldStatus, newStatus, hasPhoto = false) {
+            const operator = document.getElementById('operator-name').value || 'Не указан';
+
+            auditLog.push({
+                timestamp: new Date().toISOString(),
+                action: action,
+                cellId: cellId,
+                oldStatus: oldStatus,
+                newStatus: newStatus,
+                operator: operator,
+                hasPhoto: hasPhoto,
+                alley: currentAlley
+            });
+
+            saveAuditLog();
+        }
+
+        function openHistoryModal() {
+            document.getElementById('history-modal-overlay').classList.add('show');
+            renderHistoryList();
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal-overlay').classList.remove('show');
+        }
+
+        function renderHistoryList() {
+            const historyList = document.getElementById('history-list');
+            const filterCell = document.getElementById('history-filter-cell').value.toUpperCase();
+            const filterDate = document.getElementById('history-filter-date').value;
+
+            let filteredLog = [...auditLog].reverse();
+
+            if (filterCell) {
+                filteredLog = filteredLog.filter(item => item.cellId.includes(filterCell));
+            }
+
+            if (filterDate) {
+                filteredLog = filteredLog.filter(item => item.timestamp.startsWith(filterDate));
+            }
+
+            if (filteredLog.length === 0) {
+                historyList.innerHTML = '<div class="history-empty">История пуста</div>';
+                return;
+            }
+
+            historyList.innerHTML = filteredLog.slice(0, 100).map(item => {
+                const date = new Date(item.timestamp);
+                const timeStr = date.toLocaleString('ru-RU');
+
+                let statusClass = '';
+                let statusText = '';
+                switch(item.newStatus) {
+                    case 'checked-empty': statusClass = 'empty'; statusText = 'Пустая'; break;
+                    case 'discrepancy': statusClass = 'discrepancy'; statusText = 'Занята'; break;
+                    case 'problem': statusClass = 'problem'; statusText = 'Проблема'; break;
+                    case 'skipped': statusClass = ''; statusText = 'Пропущена'; break;
+                    default: statusText = item.newStatus;
+                }
+
+                return `
+                    <div class="history-item">
+                        <div class="history-item-header">
+                            <span class="history-item-cell">${item.cellId}</span>
+                            <span class="history-item-time">${timeStr}</span>
+                        </div>
+                        <div class="history-item-details">
+                            <span class="history-item-status search-result-status ${statusClass}">${statusText}</span>
+                            <span class="history-item-operator">Оператор: ${item.operator}</span>
+                            ${item.hasPhoto ? '<span class="history-item-photo">С фото</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function exportHistory() {
+            if (auditLog.length === 0) {
+                showNotification('История пуста', 'warning');
+                return;
+            }
+
+            let csv = 'Дата;Время;Ячейка;Статус;Оператор;С фото\n';
+
+            auditLog.forEach(item => {
+                const date = new Date(item.timestamp);
+                const dateStr = date.toLocaleDateString('ru-RU');
+                const timeStr = date.toLocaleTimeString('ru-RU');
+
+                let statusText = '';
+                switch(item.newStatus) {
+                    case 'checked-empty': statusText = 'Пустая'; break;
+                    case 'discrepancy': statusText = 'Занята'; break;
+                    case 'problem': statusText = 'Проблема'; break;
+                    case 'skipped': statusText = 'Пропущена'; break;
+                    default: statusText = item.newStatus;
+                }
+
+                csv += `"${dateStr}";"${timeStr}";"${item.cellId}";"${statusText}";"${item.operator}";"${item.hasPhoto ? 'Да' : 'Нет'}"\n`;
+            });
+
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `история_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+
+            showNotification('История экспортирована', 'success');
+        }
+
+        function clearHistory() {
+            if (confirm('Вы уверены, что хотите очистить всю историю?')) {
+                auditLog = [];
+                saveAuditLog();
+                renderHistoryList();
+                showNotification('История очищена', 'info');
+            }
+        }
+
+        // ========== ПОИСК И ФИЛЬТРАЦИЯ ==========
+        function searchCells(query) {
+            if (!query || query.length < 2) return [];
+
+            const results = [];
+            query = query.toUpperCase();
+
+            for (const alley in warehousesData) {
+                for (const section in warehousesData[alley]) {
+                    warehousesData[alley][section].cells.forEach(cell => {
+                        if (cell.id.includes(query)) {
+                            results.push(cell);
+                        }
+                    });
+                }
+            }
+
+            return results.slice(0, 10);
+        }
+
+        function showSearchResults(results) {
+            const container = document.getElementById('search-results');
+
+            if (results.length === 0) {
+                container.classList.remove('show');
+                return;
+            }
+
+            container.innerHTML = results.map(cell => {
+                let statusClass = 'empty';
+                let statusText = 'Не проверена';
+
+                if (cell.checked) {
+                    switch(cell.actualStatus) {
+                        case 'checked-empty': statusClass = 'empty'; statusText = 'Пустая'; break;
+                        case 'discrepancy': statusClass = 'discrepancy'; statusText = 'Занята'; break;
+                        case 'problem': statusClass = 'problem'; statusText = 'Проблема'; break;
+                        case 'skipped': statusClass = ''; statusText = 'Пропущена'; break;
+                    }
+                }
+
+                return `
+                    <div class="search-result-item" data-cell-id="${cell.id}" data-alley="${cell.alley}" data-section="${cell.section}">
+                        <span class="search-result-address">${cell.id}</span>
+                        <span class="search-result-status ${statusClass}">${statusText}</span>
+                    </div>
+                `;
+            }).join('');
+
+            container.classList.add('show');
+
+            // Обработчики кликов
+            container.querySelectorAll('.search-result-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const alley = item.dataset.alley;
+                    const section = item.dataset.section;
+
+                    // Переключаемся на нужную аллею
+                    if (alley !== currentAlley) {
+                        currentAlley = alley;
+                        document.getElementById('alley-select').value = alley;
+                        updateOverviewDisplay();
+                    }
+
+                    // Переходим в режим проверки на нужную секцию
+                    currentSectionIndex = parseInt(section) - 1;
+                    startInspection();
+
+                    container.classList.remove('show');
+                    document.getElementById('search-input').value = '';
+                });
+            });
+        }
+
+        function applyFilter(filter) {
+            currentFilter = filter;
+
+            // Обновляем кнопки
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+
+            // Обновляем отображение
+            updateSectionsGrid();
+        }
+
+        function cellMatchesFilter(cell, filter) {
+            switch(filter) {
+                case 'all': return true;
+                case 'unchecked': return !cell.checked;
+                case 'discrepancy': return cell.actualStatus === 'discrepancy';
+                case 'problem': return cell.actualStatus === 'problem';
+                default: return true;
+            }
+        }
+
+        // ========== ФОТО-ВЕРИФИКАЦИЯ ==========
+        function updatePhotoPreview() {
+            const container = document.getElementById('photo-preview-container');
+
+            if (!selectedCell || !selectedCell.photos || selectedCell.photos.length === 0) {
+                container.innerHTML = '<span style="color: #999; font-size: 0.85rem;">Нет прикреплённых фото</span>';
+                return;
+            }
+
+            container.innerHTML = selectedCell.photos.map((photo, index) =>
+                `<img src="${photo}" class="photo-preview" data-index="${index}" alt="Photo ${index + 1}">`
+            ).join('');
+
+            // Обработчики кликов для просмотра
+            container.querySelectorAll('.photo-preview').forEach(img => {
+                img.addEventListener('click', () => {
+                    openPhotoViewer(parseInt(img.dataset.index));
+                });
+            });
+        }
+
+        function openPhotoViewer(index) {
+            if (!selectedCell || !selectedCell.photos || !selectedCell.photos[index]) return;
+
+            currentViewingPhotoIndex = index;
+            document.getElementById('photo-viewer-img').src = selectedCell.photos[index];
+            document.getElementById('photo-viewer-overlay').classList.add('show');
+        }
+
+        function closePhotoViewer() {
+            document.getElementById('photo-viewer-overlay').classList.remove('show');
+            currentViewingPhotoIndex = -1;
+        }
+
+        function deleteCurrentPhoto() {
+            if (currentViewingPhotoIndex === -1 || !selectedCell) return;
+
+            if (confirm('Удалить это фото?')) {
+                selectedCell.photos.splice(currentViewingPhotoIndex, 1);
+                saveData();
+                updatePhotoPreview();
+                closePhotoViewer();
+                showNotification('Фото удалено', 'info');
+            }
+        }
+
+        async function handlePhotoCapture(file) {
+            if (!file || !selectedCell) return;
+
+            try {
+                // Сжатие изображения
+                const compressedBase64 = await compressImage(file);
+
+                if (!selectedCell.photos) {
+                    selectedCell.photos = [];
+                }
+
+                // Ограничение на количество фото
+                if (selectedCell.photos.length >= 5) {
+                    showNotification('Максимум 5 фото на ячейку', 'warning');
+                    return;
+                }
+
+                selectedCell.photos.push(compressedBase64);
+                saveData();
+                updatePhotoPreview();
+                showNotification('Фото добавлено', 'success');
+
+            } catch (error) {
+                console.error('Ошибка обработки фото:', error);
+                showNotification('Ошибка добавления фото', 'error');
+            }
+        }
+
+        function compressImage(file, maxWidth = 800, quality = 0.7) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         // ========== ЗАГРУЗКА И СОХРАНЕНИЕ ДАННЫХ ==========
         function loadSavedData() {
-            // Загружаем данные проверок
             const savedData = localStorage.getItem('warehouseInspectionData');
             if (savedData) {
                 try {
                     const parsedData = JSON.parse(savedData);
-                    
-                    // Объединяем сохраненные данные с текущими
+
                     for (const alley in parsedData) {
                         if (warehousesData[alley]) {
                             for (const section in parsedData[alley]) {
                                 if (warehousesData[alley][section]) {
-                                    // Обновляем ячейки
                                     parsedData[alley][section].cells.forEach(savedCell => {
                                         const existingCell = warehousesData[alley][section].cells.find(
                                             cell => cell.id === savedCell.id
@@ -1227,27 +2303,24 @@
                                             Object.assign(existingCell, savedCell);
                                         }
                                     });
-                                    
-                                    // Обновляем метаданные секции
+
                                     warehousesData[alley][section].checkedTime = parsedData[alley][section].checkedTime;
                                     warehousesData[alley][section].operator = parsedData[alley][section].operator;
                                 }
                             }
                         }
                     }
-                    console.log('Данные проверок загружены из localStorage');
+                    console.log('Данные загружены из localStorage');
                 } catch (error) {
                     console.error('Ошибка загрузки данных:', error);
                 }
             }
-            
-            // Загружаем данные WMS
+
             const savedWMSData = localStorage.getItem('warehouseWMSData');
             if (savedWMSData) {
                 try {
                     wmsData = JSON.parse(savedWMSData);
                     applyWMSDataToWarehouse();
-                    console.log('Данные WMS загружены из localStorage');
                 } catch (error) {
                     console.error('Ошибка загрузки данных WMS:', error);
                 }
@@ -1258,7 +2331,6 @@
             try {
                 localStorage.setItem('warehouseInspectionData', JSON.stringify(warehousesData));
                 localStorage.setItem('warehouseWMSData', JSON.stringify(wmsData));
-                console.log('Данные сохранены в localStorage');
             } catch (error) {
                 console.error('Ошибка сохранения данных:', error);
                 showNotification('Ошибка сохранения данных', 'error');
@@ -1267,7 +2339,6 @@
 
         // ========== ИМПОРТ ДАННЫХ ИЗ XLS ==========
         function openImportModal() {
-            console.log('Открытие модального окна импорта');
             document.getElementById('import-modal-overlay').classList.add('show');
             resetImportForm();
         }
@@ -1287,489 +2358,483 @@
             document.getElementById('xls-file-input').value = '';
         }
 
-        // Обработка выбора файла
         function handleFileSelect(file) {
             if (!file) return;
-            
+
             const fileName = file.name;
-            const fileSize = (file.size / 1024 / 1024).toFixed(2); // Размер в MB
-            
-            console.log('Выбран файл:', fileName, 'Размер:', fileSize, 'MB');
-            
-            // Проверка расширения файла
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+
             const validExtensions = ['.xls', '.xlsx', '.csv'];
             const fileExtension = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
-            
+
             if (!validExtensions.includes(fileExtension)) {
-                showNotification('Неверный формат файла. Используйте .xls, .xlsx или .csv', 'error');
+                showNotification('Неверный формат файла', 'error');
                 return;
             }
-            
-            // Проверка размера файла (макс. 10 MB)
+
             if (file.size > 10 * 1024 * 1024) {
-                showNotification('Файл слишком большой. Максимальный размер: 10 MB', 'error');
+                showNotification('Файл слишком большой (макс. 10 MB)', 'error');
                 return;
             }
-            
-            // Отображаем имя файла
+
             document.getElementById('selected-file-name').textContent = `${fileName} (${fileSize} MB)`;
             document.getElementById('import-file-name').classList.add('show');
             document.getElementById('import-start-btn').disabled = false;
-            
-            // Сохраняем файл для последующей обработки
+
             window.selectedFile = file;
         }
 
-        // Парсинг XLS файла
         async function parseXLSFile(file) {
             return new Promise((resolve, reject) => {
-                try {
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(e) {
-                        try {
-                            const data = new Uint8Array(e.target.result);
-                            const workbook = XLSX.read(data, { type: 'array' });
-                            
-                            // Получаем первый лист
-                            const firstSheetName = workbook.SheetNames[0];
-                            const worksheet = workbook.Sheets[firstSheetName];
-                            
-                            // Преобразуем в JSON
-                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                            
-                            console.log('Файл успешно прочитан, строк:', jsonData.length);
-                            resolve(jsonData);
-                        } catch (error) {
-                            reject(new Error('Ошибка парсинга файла: ' + error.message));
-                        }
-                    };
-                    
-                    reader.onerror = function() {
-                        reject(new Error('Ошибка чтения файла'));
-                    };
-                    
-                    reader.readAsArrayBuffer(file);
-                } catch (error) {
-                    reject(error);
-                }
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(new Error('Ошибка парсинга файла: ' + error.message));
+                    }
+                };
+
+                reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+                reader.readAsArrayBuffer(file);
             });
         }
 
-        // Преобразование данных из XLS в формат системы
         function processXLSData(xlsData) {
-            console.log('Обработка данных XLS...');
-            
             const processedData = {};
+            const cellIdCounts = {};  // cellId -> count of rows with this address
+            const cellIdArticles = {}; // cellId -> list of article codes from column
             let totalRows = 0;
             let validRows = 0;
             let errors = [];
-            
-            // Определяем индексы колонок по заголовкам
+
+            console.log('=== XLS PARSING START ===');
+            console.log('Total XLS rows:', xlsData.length);
+
             let headerRow = null;
-            let cellNameIndex = -1;
-            let statusIndex = -1;
-            let alleyIndex = -1;
             
-            // Ищем заголовки
+            // FIXED COLUMN INDICES (0-based):
+            // C = column 3 (index 2): адрес (название ячейки)
+            // D = column 4 (index 3): статус (занято/свободно)
+            // I = column 9 (index 8): артикул
+            let cellNameIndex = 2;  // Column C
+            let statusIndex = 3;    // Column D
+            let articlesIndex = 8;  // Column I
+            let alleyIndex = -1;
+            let cellIdCounts_raw = {}; // just for display
+
+            // Auto-detect header row (first 5 rows search for known headers)
             for (let i = 0; i < Math.min(5, xlsData.length); i++) {
                 const row = xlsData[i];
                 if (Array.isArray(row)) {
-                    for (let j = 0; j < row.length; j++) {
-                        const cellValue = String(row[j] || '').toLowerCase();
-                        
-                        if (cellValue.includes('название') && cellValue.includes('ячейки')) {
-                            cellNameIndex = j;
-                        }
-                        if (cellValue.includes('статус')) {
-                            statusIndex = j;
-                        }
-                        if (cellValue.includes('алле') || cellValue.includes('номер аллеи')) {
-                            alleyIndex = j;
-                        }
-                    }
-                    
-                    // Если нашли все необходимые колонки
-                    if (cellNameIndex !== -1 && statusIndex !== -1) {
+                    const has_header = row.some(cell => {
+                        const val = String(cell || '').toLowerCase();
+                        return val.includes('название') || val.includes('статус') || val.includes('артикул');
+                    });
+                    if (has_header) {
                         headerRow = i;
+                        console.log(`Header detected at row ${i}`);
                         break;
                     }
                 }
             }
-            
-            if (cellNameIndex === -1 || statusIndex === -1) {
-                throw new Error('Не найдены необходимые колонки в файле. Требуются колонки: "Название Ячейки" и "Статус"');
+
+            if (headerRow === null) {
+                headerRow = 0; // assume first row is header
             }
-            
-            console.log('Найдены колонки:', { cellNameIndex, statusIndex, alleyIndex, headerRow });
-            
-            // Обрабатываем строки данных
+
+            console.log(`FIXED Column Indexes: cellName(C)=${cellNameIndex}, status(D)=${statusIndex}, articles(I)=${articlesIndex}`);
+
+            // ===== PASS 1: Count occurrences of each cellId and collect articles =====
             for (let i = (headerRow || 0) + 1; i < xlsData.length; i++) {
                 const row = xlsData[i];
                 if (!Array.isArray(row) || row.length === 0) continue;
-                
-                totalRows++;
-                
+
                 try {
+                    if (statusIndex === -1) {
+                        errors.push(`Строка ${i+1}: статус не найден (колонка не определена)`);
+                        continue;
+                    }
+
                     const cellName = String(row[cellNameIndex] || '').trim();
                     const status = String(row[statusIndex] || '').trim();
                     const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
-                    
+                    const articleCode = articlesIndex !== -1 ? String(row[articlesIndex] || '').trim() : '';
+
                     if (!cellName || !status) {
-                        errors.push(`Строка ${i+1}: пропущены обязательные данные`);
                         continue;
                     }
-                    
-                    // Преобразуем название ячейки в формат системы
+
                     const parsedCell = parseCellName(cellName, alley);
-                    
                     if (!parsedCell) {
-                        errors.push(`Строка ${i+1}: неверный формат названия ячейки: ${cellName}`);
                         continue;
                     }
-                    
+
                     const cellId = `${parsedCell.alley}-${parsedCell.section}-${parsedCell.tier}-${parsedCell.position}`;
-                    
-                    // Преобразуем статус
+
+                    // COUNT: increment cellId counter
+                    cellIdCounts[cellId] = (cellIdCounts[cellId] || 0) + 1;
+
+                    // ARTICLES: collect article codes
+                    if (articleCode) {
+                        if (!cellIdArticles[cellId]) cellIdArticles[cellId] = [];
+                        // avoid duplicates
+                        if (!cellIdArticles[cellId].includes(articleCode)) {
+                            cellIdArticles[cellId].push(articleCode);
+                        }
+                    }
+
+                } catch (error) {
+                    // skip silently
+                }
+            }
+
+            // ===== PASS 2: Build processedData with correct articles count =====
+            for (let i = (headerRow || 0) + 1; i < xlsData.length; i++) {
+                const row = xlsData[i];
+                if (!Array.isArray(row) || row.length === 0) continue;
+
+                totalRows++;
+
+                try {
+                    if (statusIndex === -1) {
+                        errors.push(`Строка ${i+1}: статус не найден (колонка не определена)`);
+                        continue;
+                    }
+
+                    const cellName = String(row[cellNameIndex] || '').trim();
+                    const status = String(row[statusIndex] || '').trim();
+                    const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
+                    const articleCode = articlesIndex !== -1 ? String(row[articlesIndex] || '').trim() : '';
+
+                    if (!cellName || !status) {
+                        errors.push(`Строка ${i+1}: пропущены cellName или status`);
+                        continue;
+                    }
+
+                    const parsedCell = parseCellName(cellName, alley);
+
+                    if (!parsedCell) {
+                        errors.push(`Строка ${i+1}: неверный формат адреса: ${cellName}`);
+                        continue;
+                    }
+
+                    const cellId = `${parsedCell.alley}-${parsedCell.section}-${parsedCell.tier}-${parsedCell.position}`;
                     const systemStatus = convertStatus(status);
+
+                    // Get articles count from PASS 1 (how many rows have this address)
+                    const articlesCount = cellIdCounts[cellId] || 0;
+                    const needsAttention = articlesCount >= 2; // Mark for physical verification if 2+ rows with same address
                     
+                    // Get list of article codes for display
+                    const parsedArticles = cellIdArticles[cellId] || [];
+
                     processedData[cellId] = {
                         cellId: cellId,
-                        originalName: cellName,
                         systemStatus: systemStatus,
                         parsedData: parsedCell,
-                        rawData: {
-                            status: status,
-                            alley: alley
-                        }
+                        parsedArticles: parsedArticles,
+                        articlesCount: articlesCount,
+                        needsAttention: needsAttention
                     };
-                    
+
+                    console.log(`Row ${i}: cellName="${cellName}" → cellId="${cellId}", status="${status}" → systemStatus="${systemStatus}", rows_with_this_address=${articlesCount}, needsAttention=${needsAttention}, articles=${parsedArticles.join(', ')}`);
                     validRows++;
-                    
+
                 } catch (error) {
                     errors.push(`Строка ${i+1}: ${error.message}`);
                 }
             }
-            
-            console.log(`Обработано строк: ${validRows}/${totalRows}, ошибок: ${errors.length}`);
-            
+
             return {
-                processedData: processedData,
-                stats: {
-                    totalRows: totalRows,
-                    validRows: validRows,
-                    errorRows: errors.length
-                },
-                errors: errors
+                processedData,
+                stats: { totalRows, validRows, errorRows: errors.length },
+                errors
             };
         }
 
-        // Парсинг названия ячейки
         function parseCellName(cellName, alleyFromData) {
-            // Пример формата: "OS A5-15-11-C"
-            // Или: "OS A 005 011 045"
-            
             const cleanedName = cellName.replace(/\s+/g, ' ').trim();
-            
-            // Паттерн 1: OS A5-15-11-C
+
             const pattern1 = /OS\s+([A-Z])(\d{1,2})-(\d{1,2})-(\d{1,2})-([A-C])/i;
-            // Паттерн 2: OS A 005 011 045
             const pattern2 = /OS\s+([A-Z])\s+(\d{3})\s+(\d{3})\s+(\d{3})/i;
-            
-            let alley = '';
-            let section = '';
-            let tier = '';
-            let position = '';
-            
+            // Pattern3: concatenated form without separators, e.g. "OSNA002010049"
+            const pattern3 = /OS([A-Z]{1,2})(\d{3})(\d{3})(\d{3})/i;
+
+            let alley = '', section = '', tier = '', position = '';
+
             const match1 = cleanedName.match(pattern1);
             const match2 = cleanedName.match(pattern2);
-            
+
             if (match1) {
-                alley = match1[1].toUpperCase() + match1[2].padStart(2, '0'); // A5 → A05
-                section = match1[3].padStart(2, '0'); // 15 → 15
-                tier = match1[4].padStart(2, '0'); // 11 → 11
-                position = match1[5].toUpperCase(); // C → C
+                alley = match1[1].toUpperCase() + match1[2].padStart(2, '0');
+                section = match1[3].padStart(2, '0');
+                tier = match1[4].padStart(2, '0');
+                position = match1[5].toUpperCase();
             } else if (match2) {
-                alley = match2[1].toUpperCase() + match2[2].padStart(2, '0').slice(-2); // 005 → 05
-                section = match2[3].padStart(2, '0'); // 011 → 11
-                tier = match2[4].padStart(2, '0'); // 045 → 45
-                // Для формата с глубиной определяем позицию по глубине
+                alley = match2[1].toUpperCase() + match2[2].padStart(2, '0').slice(-2);
+                section = match2[3].padStart(2, '0');
+                tier = match2[4].padStart(2, '0');
                 const depth = parseInt(match2[4]);
                 position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
-            } else {
-                // Если не удалось распарсить по шаблонам, используем аллею из данных
-                if (alleyFromData) {
-                    const alleyMatch = alleyFromData.match(/([A-Z])(\d{1,2})/i);
-                    if (alleyMatch) {
-                        alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
-                        
-                        // Пытаемся извлечить данные из названия другими способами
-                        const numbers = cellName.match(/\d+/g);
-                        if (numbers && numbers.length >= 3) {
-                            section = numbers[0].padStart(2, '0').slice(-2);
-                            tier = numbers[1].padStart(2, '0').slice(-2);
-                            position = numbers[2] === '49' ? 'A' : numbers[2] === '50' ? 'B' : 'C';
-                        }
+            } else if (pattern3.test(cleanedName)) {
+                const m3 = cleanedName.match(pattern3);
+                // OS + alleyLetters + section(3) + tier(3) + depth(3)
+                // Example: OSNA002010049 -> m3[1]=NA, m3[2]=002, m3[3]=010, m3[4]=049
+                const alleyLetters = m3[1].toUpperCase();
+                const part1 = m3[2];
+                const part2 = m3[3];
+                const part3 = m3[4];
+
+                // Derive alley as first letter + two-digit number from part1
+                alley = alleyLetters[0] + String(part1).padStart(3, '0').slice(-2);
+                section = String(part1).padStart(3, '0').slice(-2);
+                tier = String(part2).padStart(3, '0').slice(-2);
+                const depth = parseInt(part3);
+                position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
+            } else if (alleyFromData) {
+                const alleyMatch = alleyFromData.match(/([A-Z])(\d{1,2})/i);
+                if (alleyMatch) {
+                    alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
+                    const numbers = cellName.match(/\d+/g);
+                    if (numbers && numbers.length >= 3) {
+                        section = numbers[0].padStart(2, '0').slice(-2);
+                        tier = numbers[1].padStart(2, '0').slice(-2);
+                        position = numbers[2] === '49' ? 'A' : numbers[2] === '50' ? 'B' : 'C';
                     }
                 }
-                
-                if (!alley) {
-                    return null;
-                }
             }
-            
-            // Валидация данных
-            if (!alley.match(/^A\d{2}$/) || 
-                !section.match(/^\d{2}$/) || 
-                !tier.match(/^\d{2}$/) || 
-                !['A', 'B', 'C'].includes(position)) {
+
+            if (!alley) return null;
+
+            if (!alley.match(/^A\d{2}$/) || !section.match(/^\d{2}$/) ||
+                !tier.match(/^\d{2}$/) || !['A', 'B', 'C'].includes(position)) {
                 return null;
             }
-            
-            return {
-                alley: alley,
-                section: section,
-                tier: tier,
-                position: position
-            };
+
+            return { alley, section, tier, position };
         }
 
-        // Преобразование статуса
         function convertStatus(status) {
-            const statusLower = status.toLowerCase();
-            
-            if (statusLower.includes('свобод') || statusLower.includes('пуст') || statusLower === 'empty') {
+            const statusLower = status.toLowerCase().trim();
+            console.log(`[convertStatus] Input: "${status}" → Lowercase: "${statusLower}"`);
+
+            if (statusLower.includes('свобод') || statusLower.includes('пуст') || statusLower === 'empty' || statusLower === 'свободна' || statusLower === 'свободно' || statusLower === 'free') {
+                console.log(`  → Result: "empty"`);
                 return 'empty';
-            } else if (statusLower.includes('занят') || statusLower.includes('заполн') || statusLower === 'occupied') {
+            } else if (statusLower.includes('занят') || statusLower.includes('заполн') || statusLower === 'occupied' || statusLower === 'занята' || statusLower === 'занято' || statusLower === 'taken') {
+                console.log(`  → Result: "occupied"`);
                 return 'occupied';
-            } else {
-                return 'unknown';
             }
+            console.log(`  → Result: "unknown" (NO MATCH!)`);
+            return 'unknown';
         }
 
-        // Применение данных WMS к warehousesData
         function applyWMSDataToWarehouse() {
-            console.log('Применение данных WMS...');
-            
             let updatedCells = 0;
-            let notFoundCells = 0;
-            
+
+            console.log('=== APPLYING WMS DATA ===');
+            console.log('Total cellsData:', Object.keys(wmsData.cellsData || {}).length);
+
             for (const cellId in wmsData.cellsData) {
                 const wmsCell = wmsData.cellsData[cellId];
                 const parts = cellId.split('-');
-                
-                if (parts.length !== 4) continue;
-                
+
+                if (parts.length !== 4) {
+                    console.warn(`Invalid cellId format: ${cellId}`);
+                    continue;
+                }
+
                 const [alley, section, tier, position] = parts;
-                
+
                 if (warehousesData[alley] && warehousesData[alley][section]) {
                     const cell = warehousesData[alley][section].cells.find(
                         c => c.tier === tier && c.position === position
                     );
-                    
+
                     if (cell) {
                         cell.systemStatus = wmsCell.systemStatus;
+                        // apply parsed articles info if present
+                        if (wmsCell.parsedArticles) {
+                            cell.parsedArticles = wmsCell.parsedArticles;
+                            cell.articlesCount = wmsCell.articlesCount || wmsCell.parsedArticles.length;
+                            cell.needsAttention = (cell.articlesCount || 0) >= 2;
+                        } else {
+                            cell.parsedArticles = cell.parsedArticles || [];
+                            cell.articlesCount = cell.articlesCount || 0;
+                            cell.needsAttention = !!cell.needsAttention;
+                        }
+                        
+                        console.log(`Updated cell ${cellId}: systemStatus=${cell.systemStatus}`);
                         updatedCells++;
                     } else {
-                        notFoundCells++;
+                        console.warn(`Cell not found: ${alley}/${section}/${tier}/${position}`);
                     }
                 } else {
-                    notFoundCells++;
+                    console.warn(`Alley/Section not found: ${alley}/${section}`);
                 }
             }
-            
-            console.log(`Обновлено ячеек: ${updatedCells}, не найдено: ${notFoundCells}`);
-            return { updatedCells, notFoundCells };
+
+            console.log(`=== APPLY COMPLETE: ${updatedCells} cells updated ===`);
+            return { updatedCells };
         }
 
-        // Основная функция импорта
+        // Apply staged import buffer into wmsData and warehouse, clear pending buffer
+        function applyImport() {
+            if (!window.pendingWMSImport || !window.pendingWMSImport.processed) {
+                showNotification('Нет подготовленных данных для применения', 'warning');
+                return;
+            }
+
+            const processed = window.pendingWMSImport.processed;
+            // Save wmsData with enriched cellsData
+            wmsData = {
+                lastImportDate: new Date().toISOString(),
+                fileInfo: window.pendingWMSImport.fileInfo || {},
+                cellsData: processed.processedData
+            };
+
+            const applyResult = applyWMSDataToWarehouse();
+            saveData();
+
+            // Clear pending buffer and disable apply button
+            window.pendingWMSImport = null;
+            const applyBtn = document.getElementById('import-apply-btn');
+            if (applyBtn) applyBtn.disabled = true;
+
+            if (isInspecting) updateInspectionCarousel(); else updateOverviewDisplay();
+
+            showNotification(`Данные применены — обновлено ${applyResult.updatedCells} ячеек`, 'success');
+            document.getElementById('import-modal-overlay').classList.remove('show');
+        }
+
+        // Reset inspection progress (clear checked flags, statuses, times) but keep WMS import and photos
+        function resetInspectionProgress() {
+            if (!confirm('Сбросить выполнение проверки? Все пометки о проверках будут удалены.')) return;
+
+            for (const alley in warehousesData) {
+                for (const section in warehousesData[alley]) {
+                    warehousesData[alley][section].cells.forEach(cell => {
+                        cell.checked = false;
+                        cell.actualStatus = null;
+                        cell.checkTime = null;
+                        cell.operator = '';
+                        cell.discrepancy = false;
+                        // keep photos and parsed WMS info
+                    });
+                    warehousesData[alley][section].checkedTime = null;
+                    warehousesData[alley][section].operator = '';
+                }
+            }
+
+            saveData();
+            updateOverviewDisplay();
+            if (isInspecting) updateInspectionCarousel();
+            showNotification('Статус проверки сброшен', 'info');
+        }
+
         async function startImport() {
             const file = window.selectedFile;
             if (!file) {
                 showNotification('Файл не выбран', 'error');
                 return;
             }
-            
+
             const progressBar = document.getElementById('import-progress-bar');
             const progressContainer = document.getElementById('import-progress');
             const statusContainer = document.getElementById('import-status');
             const statusList = document.getElementById('import-status-list');
-            
-            // Сбрасываем UI
+
             progressContainer.classList.add('show');
             statusContainer.classList.remove('show');
             statusList.innerHTML = '';
             progressBar.style.width = '0%';
-            
+
             try {
-                // 1. Парсинг файла
                 progressBar.style.width = '25%';
-                showNotification('Чтение файла...', 'info');
-                
                 const xlsData = await parseXLSFile(file);
                 progressBar.style.width = '50%';
-                
-                // 2. Обработка данных
-                showNotification('Обработка данных...', 'info');
+
                 const processed = processXLSData(xlsData);
-                progressBar.style.width = '75%';
-                
-                // 3. Сохранение данных WMS
-                wmsData = {
-                    lastImportDate: new Date().toISOString(),
-                    fileInfo: {
-                        name: file.name,
-                        size: file.size,
-                        lastModified: file.lastModified
-                    },
-                    cellsData: processed.processedData
+                progressBar.style.width = '90%';
+
+                // Store parsed result in a pending buffer — require explicit user confirmation to apply
+                window.pendingWMSImport = {
+                    fileInfo: { name: file.name, size: file.size },
+                    processed: processed
                 };
-                
-                // 4. Применение данных к warehousesData
-                const applyResult = applyWMSDataToWarehouse();
-                progressBar.style.width = '100%';
-                
-                // 5. Сохранение данных
-                saveData();
-                
-                // Обновляем отображение
-                if (isInspecting) {
-                    updateInspectionCarousel();
-                } else {
-                    updateOverviewDisplay();
-                }
-                
-                // Показываем результаты
+
+                // Show summary to user and enable OK (apply) button
                 statusContainer.classList.add('show');
-                
-                const successItem = document.createElement('li');
-                successItem.className = 'import-status-item';
-                successItem.innerHTML = `<span>Успешно обработано строк:</span><span>${processed.stats.validRows}</span>`;
-                statusList.appendChild(successItem);
-                
-                const errorItem = document.createElement('li');
-                errorItem.className = 'import-status-item';
-                errorItem.innerHTML = `<span>Строк с ошибками:</span><span>${processed.stats.errorRows}</span>`;
-                statusList.appendChild(errorItem);
-                
-                const updatedItem = document.createElement('li');
-                updatedItem.className = 'import-status-item';
-                updatedItem.innerHTML = `<span>Обновлено ячеек в системе:</span><span>${applyResult.updatedCells}</span>`;
-                statusList.appendChild(updatedItem);
-                
-                const dateItem = document.createElement('li');
-                dateItem.className = 'import-status-item';
-                const importDate = new Date(wmsData.lastImportDate).toLocaleString();
-                dateItem.innerHTML = `<span>Дата импорта:</span><span>${importDate}</span>`;
-                statusList.appendChild(dateItem);
-                
-                // Показываем ошибки, если есть
-                if (processed.errors.length > 0) {
-                    const errorsTitle = document.createElement('div');
-                    errorsTitle.className = 'import-status-title';
-                    errorsTitle.textContent = 'Ошибки обработки:';
-                    errorsTitle.style.marginTop = '10px';
-                    errorsTitle.style.color = '#e74c3c';
-                    statusContainer.appendChild(errorsTitle);
-                    
-                    const errorsList = document.createElement('ul');
-                    errorsList.className = 'import-status-list';
-                    
-                    processed.errors.slice(0, 5).forEach(error => {
-                        const errorItem = document.createElement('li');
-                        errorItem.className = 'import-status-item';
-                        errorItem.style.color = '#e74c3c';
-                        errorItem.textContent = error;
-                        errorsList.appendChild(errorItem);
-                    });
-                    
-                    if (processed.errors.length > 5) {
-                        const moreItem = document.createElement('li');
-                        moreItem.className = 'import-status-item';
-                        moreItem.style.color = '#7f8c8d';
-                        moreItem.textContent = `... и ещё ${processed.errors.length - 5} ошибок`;
-                        errorsList.appendChild(moreItem);
-                    }
-                    
-                    statusContainer.appendChild(errorsList);
-                }
-                
-                showNotification(`Данные успешно импортированы! Обновлено ${applyResult.updatedCells} ячеек`, 'success');
-                
+                statusList.innerHTML = `
+                    <li class="import-status-item"><span>Обработано строк:</span><span>${processed.stats.validRows}</span></li>
+                    <li class="import-status-item"><span>Ошибок:</span><span>${processed.stats.errorRows}</span></li>
+                    <li class="import-status-item"><span>Ячеек в файле:</span><span>${Object.keys(processed.processedData).length}</span></li>
+                `;
+
+                document.getElementById('import-apply-btn').disabled = false;
+                progressBar.style.width = '100%';
+
+                showNotification('Парсинг завершён. Нажмите OK Применить чтобы обновить данные в системе', 'info');
+
             } catch (error) {
                 console.error('Ошибка импорта:', error);
                 progressBar.style.backgroundColor = '#e74c3c';
-                
-                statusContainer.classList.add('show');
-                const errorItem = document.createElement('li');
-                errorItem.className = 'import-status-item';
-                errorItem.style.color = '#e74c3c';
-                errorItem.textContent = `Ошибка: ${error.message}`;
-                statusList.appendChild(errorItem);
-                
-                showNotification(`Ошибка импорта: ${error.message}`, 'error');
+                showNotification(`Ошибка: ${error.message}`, 'error');
             }
         }
 
         // ========== ЭКСПОРТ ДАННЫХ В CSV ==========
         function exportToCSV() {
-            console.log('Экспорт данных в CSV...');
-            
             if (!warehousesData[currentAlley]) {
                 showNotification('Нет данных для экспорта', 'warning');
                 return;
             }
-            
+
             const operator = document.getElementById('operator-name').value || 'Не указан';
-            const exportDate = new Date().toISOString();
-            
-            // Подготавливаем данные для экспорта
-            let csvContent = 'Адрес ячейки;Статус в системе;Фактический статус;Расхождение;Дата проверки;Оператор;Комментарий\n';
-            
+
+            let csvContent = 'Адрес ячейки;Статус в системе;Фактический статус;Расхождение;Дата проверки;Оператор;Фото\n';
+
             let exportedRows = 0;
-            
+
             for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
                 const section = sectionNum.toString().padStart(2, '0');
                 const sectionData = warehousesData[currentAlley][section];
-                
+
                 if (!sectionData) continue;
-                
+
                 sectionData.cells.forEach(cell => {
                     if (cell.checked && cell.actualStatus !== 'skipped') {
-                        const cellId = cell.id;
-                        const systemStatus = cell.systemStatus;
                         const actualStatus = getActualStatusText(cell.actualStatus);
-                        const discrepancy = cell.systemStatus === 'empty' && cell.actualStatus === 'discrepancy' ||
-                                          cell.systemStatus === 'occupied' && cell.actualStatus === 'checked-empty' ? 'Да' : 'Нет';
+                        const discrepancy = (cell.systemStatus === 'empty' && cell.actualStatus === 'discrepancy') ||
+                                          (cell.systemStatus === 'occupied' && cell.actualStatus === 'checked-empty') ? 'Да' : 'Нет';
                         const checkTime = cell.checkTime ? new Date(cell.checkTime).toLocaleString() : '';
-                        const cellOperator = cell.operator || operator;
-                        const comment = cell.comment || '';
-                        
-                        csvContent += `"${cellId}";"${systemStatus}";"${actualStatus}";"${discrepancy}";"${checkTime}";"${cellOperator}";"${comment}"\n`;
+                        const hasPhoto = cell.photos && cell.photos.length > 0 ? 'Да' : 'Нет';
+
+                        csvContent += `"${cell.id}";"${cell.systemStatus}";"${actualStatus}";"${discrepancy}";"${checkTime}";"${cell.operator || operator}";"${hasPhoto}"\n`;
                         exportedRows++;
                     }
                 });
             }
-            
+
             if (exportedRows === 0) {
-                showNotification('Нет проверенных ячеек для экспорта', 'warning');
+                showNotification('Нет проверенных ячеек', 'warning');
                 return;
             }
-            
-            // Создаем Blob и скачиваем файл
+
             const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
-            const fileName = `отчет_${currentAlley}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_${new Date().getHours()}${new Date().getMinutes()}.csv`;
-            
             link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            link.style.display = 'none';
-            
-            document.body.appendChild(link);
+            link.download = `отчет_${currentAlley}_${new Date().toISOString().slice(0,10)}.csv`;
             link.click();
-            document.body.removeChild(link);
-            
-            showNotification(`Экспортировано ${exportedRows} строк в файл ${fileName}`, 'success');
+
+            showNotification(`Экспортировано ${exportedRows} строк`, 'success');
         }
 
         function getActualStatusText(status) {
@@ -1783,34 +2848,27 @@
 
         // ========== ОБНОВЛЕНИЕ РЕЖИМА ОБЗОРА ==========
         function updateOverviewDisplay() {
-            updateOverviewAlleyTitle();
+            document.getElementById('overview-alley-title').textContent = `Аллея ${currentAlley} - Секции`;
             updateGlobalStats();
             updateSectionsGrid();
         }
 
-        function updateOverviewAlleyTitle() {
-            document.getElementById('overview-alley-title').textContent = `Аллея ${currentAlley} - Секции`;
-        }
-
         function updateGlobalStats() {
             if (!warehousesData[currentAlley]) return;
-            
-            let total = 0;
-            let checked = 0;
-            let discrepancies = 0;
-            let problems = 0;
-            
+
+            let total = 0, checked = 0, discrepancies = 0, problems = 0;
+
             for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
                 const section = sectionNum.toString().padStart(2, '0');
                 if (warehousesData[currentAlley][section]) {
                     const cells = warehousesData[currentAlley][section].cells;
                     total += cells.length;
-                    checked += cells.filter(cell => cell.checked && cell.actualStatus !== 'skipped').length;
-                    discrepancies += cells.filter(cell => cell.actualStatus === 'discrepancy').length;
-                    problems += cells.filter(cell => cell.actualStatus === 'problem').length;
+                    checked += cells.filter(c => c.checked && c.actualStatus !== 'skipped').length;
+                    discrepancies += cells.filter(c => c.actualStatus === 'discrepancy').length;
+                    problems += cells.filter(c => c.actualStatus === 'problem').length;
                 }
             }
-            
+
             document.getElementById('total-cells').textContent = total;
             document.getElementById('checked-cells').textContent = checked;
             document.getElementById('discrepancy-cells').textContent = discrepancies;
@@ -1820,47 +2878,49 @@
         function updateSectionsGrid() {
             const sectionsGrid = document.getElementById('sections-grid');
             if (!sectionsGrid) return;
-            
+
             sectionsGrid.innerHTML = '';
-            
+
             if (!warehousesData[currentAlley]) {
                 sectionsGrid.innerHTML = '<div class="section-card">Нет данных</div>';
                 return;
             }
-            
+
             for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
                 const section = sectionNum.toString().padStart(2, '0');
                 const sectionData = warehousesData[currentAlley][section];
                 if (!sectionData) continue;
-                
+
                 const cells = sectionData.cells;
                 const total = cells.length;
-                const checked = cells.filter(cell => cell.checked && cell.actualStatus !== 'skipped').length;
-                const discrepancies = cells.filter(cell => cell.actualStatus === 'discrepancy').length;
-                const problems = cells.filter(cell => cell.actualStatus === 'problem').length;
+                const checked = cells.filter(c => c.checked && c.actualStatus !== 'skipped').length;
+                const discrepancies = cells.filter(c => c.actualStatus === 'discrepancy').length;
+                const problems = cells.filter(c => c.actualStatus === 'problem').length;
                 const progress = total > 0 ? Math.round((checked / total) * 100) : 0;
-                
-                // Определяем статус секции
+
+                // Проверяем, есть ли ячейки, соответствующие фильтру
+                const hasMatchingCells = cells.some(c => cellMatchesFilter(c, currentFilter));
+
                 let statusClass = 'status-not-started';
                 let statusText = 'Не начата';
-                
+
                 if (progress === 100) {
                     statusClass = 'status-completed';
                     statusText = 'Завершена';
-                } else if (progress > 0 && progress < 100) {
+                } else if (progress > 0) {
                     statusClass = 'status-in-progress';
                     statusText = 'В процессе';
                 }
-                
+
                 if (discrepancies > 0 || problems > 0) {
                     statusClass = 'status-with-issues';
                     statusText = 'Есть проблемы';
                 }
-                
+
                 const sectionCard = document.createElement('div');
-                sectionCard.className = `section-card`;
+                sectionCard.className = `section-card ${!hasMatchingCells && currentFilter !== 'all' ? 'filtered-out' : ''}`;
                 sectionCard.dataset.sectionIndex = sectionNum - 1;
-                
+
                 sectionCard.innerHTML = `
                     <div class="section-card-header">
                         <div class="section-card-title">Секция ${section}</div>
@@ -1888,83 +2948,66 @@
                         <div class="section-card-progress-fill" style="width: ${progress}%"></div>
                     </div>
                 `;
-                
-                // Карточка кликабельна - начинаем проверку с этой секции
+
                 sectionCard.addEventListener('click', () => {
                     currentSectionIndex = sectionNum - 1;
                     startInspection();
                 });
-                
+
                 sectionsGrid.appendChild(sectionCard);
             }
         }
 
         // ========== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ==========
         function startInspection() {
-            console.log('Начало проверки, секция:', currentSectionIndex);
             isInspecting = true;
-            
-            // Переключаем режимы
+
             document.getElementById('overview-mode').style.display = 'none';
             document.getElementById('inspection-mode').style.display = 'flex';
-            
-            // Обновляем заголовок
             document.getElementById('inspection-alley-title').textContent = `Аллея ${currentAlley} - Проверка`;
-            
-            // Инициализируем карусель проверки
+
             updateInspectionCarousel();
-            
-            // Показываем уведомление
-            showNotification(`Начата проверка аллеи ${currentAlley}`, 'info');
+            showNotification(`Проверка аллеи ${currentAlley}`, 'info');
         }
 
         function exitInspection() {
             isInspecting = false;
-            
-            // Переключаем режимы
+
             document.getElementById('inspection-mode').style.display = 'none';
             document.getElementById('overview-mode').style.display = 'flex';
-            
-            // Сохраняем данные
+
             saveData();
-            
-            // Обновляем обзор
             updateOverviewDisplay();
-            
-            // Показываем уведомление
-            showNotification(`Проверка аллеи ${currentAlley} завершена`, 'info');
+            showNotification(`Проверка завершена`, 'info');
         }
 
         // ========== КАРУСЕЛЬ ПРОВЕРКИ ==========
         function updateInspectionCarousel() {
             const carousel = document.getElementById('sections-carousel');
             const indicators = document.getElementById('swipe-indicators');
-            
+
             if (!carousel || !indicators) return;
-            
+
             carousel.innerHTML = '';
             indicators.innerHTML = '';
-            
+
             if (!warehousesData[currentAlley]) {
-                carousel.innerHTML = '<div class="inspection-section-slide"><div style="text-align: center; padding: 40px; color: #666;">Нет данных для отображения</div></div>';
+                carousel.innerHTML = '<div class="inspection-section-slide"><div style="text-align:center;padding:40px;color:#666;">Нет данных</div></div>';
                 return;
             }
-            
-            // Создаем слайды для всех секций
+
             for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
                 const section = sectionNum.toString().padStart(2, '0');
                 const slide = createInspectionSectionSlide(section, sectionNum - 1);
                 carousel.appendChild(slide);
-                
-                // Создаем индикатор
+
                 const indicator = document.createElement('div');
                 indicator.className = `swipe-indicator ${sectionNum - 1 === currentSectionIndex ? 'active' : ''}`;
                 indicator.dataset.index = sectionNum - 1;
                 indicator.addEventListener('click', () => goToSection(sectionNum - 1));
                 indicators.appendChild(indicator);
             }
-            
-            // Устанавливаем позицию карусели
+
             goToSection(currentSectionIndex);
         }
 
@@ -1973,195 +3016,170 @@
             if (!sectionData) {
                 return createEmptySlide(section, index);
             }
-            
+
             const cells = sectionData.cells;
-            
+
             const slide = document.createElement('div');
             slide.className = 'inspection-section-slide';
             slide.dataset.sectionIndex = index;
             slide.dataset.section = section;
-            
-            // Создаем строки для ярусов
+
             const rackContainer = document.createElement('div');
             rackContainer.className = 'inspection-rack';
-            
+
             const cellsByTier = {};
             tierOrder.forEach(tier => {
                 cellsByTier[tier] = cells.filter(cell => cell.tier === tier);
             });
-            
+
             tierOrder.forEach(tier => {
                 const tierCells = cellsByTier[tier];
                 if (tierCells.length === 0) return;
-                
+
                 const tierRow = document.createElement('div');
                 tierRow.className = 'inspection-tier-row';
-                
+
                 if (pickingTiers.includes(tier)) {
                     tierRow.classList.add('inspection-tier-picking');
                 } else if (upperTiers.includes(tier)) {
                     tierRow.classList.add('inspection-tier-upper');
                 }
-                
+
                 const tierLabel = document.createElement('div');
                 tierLabel.className = 'inspection-tier-label';
-                if (pickingTiers.includes(tier)) {
-                    tierLabel.classList.add('picking');
-                } else if (upperTiers.includes(tier)) {
-                    tierLabel.classList.add('upper');
-                }
+                if (pickingTiers.includes(tier)) tierLabel.classList.add('picking');
+                else if (upperTiers.includes(tier)) tierLabel.classList.add('upper');
                 tierLabel.textContent = tier;
                 tierRow.appendChild(tierLabel);
-                
+
                 const cellsContainer = document.createElement('div');
                 cellsContainer.className = 'inspection-cells-container';
-                
-                // Сортируем ячейки по позициям
+
                 tierCells.sort((a, b) => positions.indexOf(a.position) - positions.indexOf(b.position));
-                
+
                 tierCells.forEach(cell => {
                     const cellElement = createCellElement(cell);
                     cellsContainer.appendChild(cellElement);
                 });
-                
+
                 tierRow.appendChild(cellsContainer);
                 rackContainer.appendChild(tierRow);
             });
-            
+
             slide.innerHTML = `
                 <div class="inspection-section-header">
                     <div class="inspection-section-name">Секция ${section}</div>
                     <div class="inspection-section-counter">${index + 1}/${totalSections}</div>
                 </div>
-                <div class="inspection-rack-container">
-                </div>
+                <div class="inspection-rack-container"></div>
             `;
-            
-            // Вставляем rackContainer внутрь контейнера
-            const rackContainerWrapper = slide.querySelector('.inspection-rack-container');
-            if (rackContainerWrapper) {
-                rackContainerWrapper.appendChild(rackContainer);
-            }
-            
+
+            slide.querySelector('.inspection-rack-container').appendChild(rackContainer);
+
             return slide;
         }
 
         function createCellElement(cell) {
             const cellElement = document.createElement('div');
-            cellElement.className = 'inspection-cell';
-            
-            // Определяем класс состояния ячейки
+
             let statusClass = 'inspection-cell-unchecked';
+            let wmsClass = '';
+
+            // Priority: if cell is checked, use checked status class
             if (cell.checked) {
-                if (cell.actualStatus === 'checked-empty') {
-                    statusClass = 'inspection-cell-checked-empty';
-                } else if (cell.actualStatus === 'discrepancy') {
-                    statusClass = 'inspection-cell-discrepancy';
-                } else if (cell.actualStatus === 'problem') {
-                    statusClass = 'inspection-cell-problem';
-                } else if (cell.actualStatus === 'skipped') {
-                    statusClass = 'inspection-cell-skipped';
+                switch(cell.actualStatus) {
+                    case 'checked-empty': statusClass = 'inspection-cell-checked-empty'; break;
+                    case 'discrepancy': statusClass = 'inspection-cell-discrepancy'; break;
+                    case 'problem': statusClass = 'inspection-cell-problem'; break;
+                    case 'skipped': statusClass = 'inspection-cell-skipped'; break;
+                }
+            } else if (cell.systemStatus) {
+                // If not checked but has WMS data, apply WMS status class
+                switch(cell.systemStatus) {
+                    case 'occupied': wmsClass = 'inspection-cell-wms-occupied'; break;
+                    case 'empty': wmsClass = 'inspection-cell-wms-empty'; break;
+                    case 'unknown': wmsClass = 'inspection-cell-wms-unknown'; break;
                 }
             }
-            
+
             cellElement.className = `inspection-cell ${statusClass}`;
+            if (wmsClass) cellElement.classList.add(wmsClass);
             if (cell.actualStatus === 'discrepancy' || cell.actualStatus === 'problem') {
                 cellElement.classList.add('pulse');
             }
-            
-            // Добавляем индикатор статуса из WMS
-            if (cell.systemStatus === 'occupied') {
-                cellElement.style.borderLeft = '4px solid #e74c3c';
-            } else if (cell.systemStatus === 'empty') {
-                cellElement.style.borderLeft = '4px solid #2ecc71';
-            }
-            
+
             cellElement.dataset.cellId = cell.id;
-            cellElement.dataset.alley = cell.alley;
-            cellElement.dataset.section = cell.section;
-            cellElement.dataset.tier = cell.tier;
-            cellElement.dataset.position = cell.position;
-            
-            const cellAddress = document.createElement('div');
-            cellAddress.className = 'inspection-cell-address';
-            cellAddress.textContent = cell.position;
-            
-            const cellPosition = document.createElement('div');
-            cellPosition.className = 'inspection-cell-position';
-            
-            // Добавляем иконку статуса из WMS
-            let statusIcon = '';
-            if (cell.systemStatus === 'occupied') {
-                statusIcon = '📦';
-            } else if (cell.systemStatus === 'empty') {
-                statusIcon = '⬜';
+
+            let photoIndicator = '';
+            if (cell.photos && cell.photos.length > 0) {
+                photoIndicator = `<div class="inspection-cell-photo-indicator">${cell.photos.length}</div>`;
             }
-            
-            cellPosition.textContent = `${statusIcon} ${cell.position}`;
-            
-            cellElement.appendChild(cellAddress);
-            cellElement.appendChild(cellPosition);
-            
-            // Обработчик клика/тапа
+
+            let statusIcon = cell.systemStatus === 'occupied' ? '&#128230;' : '&#9634;';
+
+            // Articles badge
+            let articlesBadge = '';
+            const count = cell.articlesCount || (cell.parsedArticles ? cell.parsedArticles.length : 0);
+            if (count && count > 0) {
+                const attentionClass = (cell.needsAttention || count >= 2) ? 'attention' : '';
+                articlesBadge = `<div class="cell-articles-badge ${attentionClass}">${count}</div>`;
+            }
+
+            cellElement.innerHTML = `
+                ${articlesBadge}
+                ${photoIndicator}
+                <div class="inspection-cell-address">${cell.position}</div>
+                <div class="inspection-cell-position">${statusIcon}</div>
+            `;
+
             cellElement.addEventListener('click', (e) => {
                 e.stopPropagation();
                 handleCellClick(cell, cellElement);
             });
-            
+
             return cellElement;
         }
 
         function createEmptySlide(section, index) {
             const slide = document.createElement('div');
             slide.className = 'inspection-section-slide';
-            slide.dataset.sectionIndex = index;
-            
             slide.innerHTML = `
                 <div class="inspection-section-header">
                     <div class="inspection-section-name">Секция ${section}</div>
                     <div class="inspection-section-counter">${index + 1}/${totalSections}</div>
                 </div>
                 <div class="inspection-rack-container">
-                    <div style="text-align: center; padding: 40px; color: #666;">
-                        Нет данных для секции ${section}
-                    </div>
+                    <div style="text-align:center;padding:40px;color:#666;">Нет данных</div>
                 </div>
             `;
-            
             return slide;
         }
 
         // ========== НАВИГАЦИЯ ПО СЕКЦИЯМ ==========
         function goToSection(index) {
             if (index < 0 || index >= totalSections) return;
-            
+
             currentSectionIndex = index;
             const carousel = document.getElementById('sections-carousel');
             if (carousel) {
                 carousel.style.transform = `translateX(-${index * 100}%)`;
             }
-            
-            // Обновляем активный индикатор
+
             document.querySelectorAll('.swipe-indicator').forEach((ind, i) => {
                 ind.classList.toggle('active', i === index);
             });
         }
 
         function nextSection() {
-            if (currentSectionIndex < totalSections - 1) {
-                goToSection(currentSectionIndex + 1);
-            }
+            if (currentSectionIndex < totalSections - 1) goToSection(currentSectionIndex + 1);
         }
 
         function prevSection() {
-            if (currentSectionIndex > 0) {
-                goToSection(currentSectionIndex - 1);
-            }
+            if (currentSectionIndex > 0) goToSection(currentSectionIndex - 1);
         }
 
         // ========== ОБРАБОТКА КЛИКОВ ПО ЯЧЕЙКАМ ==========
         function handleCellClick(cell, cellElement) {
-            console.log('Клик по ячейке:', cell.id);
             selectedCell = cell;
             selectedCellElement = cellElement;
             openModal(cell);
@@ -2169,9 +3187,27 @@
 
         // ========== МОДАЛЬНОЕ ОКНО ==========
         function openModal(cell) {
-            console.log('Открытие модального окна для:', cell.id);
             document.getElementById('modal-address').textContent = cell.id;
+            
+            // Отображение статуса WMS
+            let statusLabel = '-';
+            if (cell.systemStatus === 'occupied') {
+                statusLabel = '✓ Занято';
+            } else if (cell.systemStatus === 'empty') {
+                statusLabel = '○ Свободно';
+            } else if (cell.systemStatus === 'unknown') {
+                statusLabel = '? Неизвестно';
+            }
+            document.getElementById('modal-status').textContent = statusLabel;
+            
+            // Отображение артикулов
+            const articlesText = (cell.parsedArticles && cell.parsedArticles.length > 0) 
+                ? cell.parsedArticles.join(', ')
+                : 'Нет данных';
+            document.getElementById('modal-articles').textContent = articlesText;
+            
             document.getElementById('modal-overlay').classList.add('show');
+            updatePhotoPreview();
         }
 
         function closeModal() {
@@ -2181,43 +3217,34 @@
         }
 
         function updateCellStatus(status) {
-            if (!selectedCell) {
-                console.error('Нет выбранной ячейки');
-                return;
-            }
-            
-            console.log('Обновление статуса ячейки:', selectedCell.id, 'статус:', status);
-            
-            // Обновляем данные ячейки в warehousesData
+            if (!selectedCell) return;
+
+            const oldStatus = selectedCell.actualStatus;
+            const hasPhoto = selectedCell.photos && selectedCell.photos.length > 0;
+
             selectedCell.actualStatus = status;
             selectedCell.checked = true;
             selectedCell.checkTime = new Date().toISOString();
             selectedCell.operator = document.getElementById('operator-name').value || 'Не указан';
-            
-            // Определяем расхождение
+
             if ((selectedCell.systemStatus === 'empty' && status === 'discrepancy') ||
                 (selectedCell.systemStatus === 'occupied' && status === 'checked-empty')) {
                 selectedCell.discrepancy = true;
             }
-            
-            // Обновляем визуальное отображение ячейки
+
+            // Логируем действие
+            logAction('check', selectedCell.id, oldStatus, status, hasPhoto);
+
             if (selectedCellElement) {
-                // Удаляем все классы состояний
                 selectedCellElement.classList.remove(
-                    'inspection-cell-unchecked',
-                    'inspection-cell-checked-empty',
-                    'inspection-cell-discrepancy',
-                    'inspection-cell-problem',
-                    'inspection-cell-skipped',
-                    'pulse'
+                    'inspection-cell-unchecked', 'inspection-cell-checked-empty',
+                    'inspection-cell-discrepancy', 'inspection-cell-problem',
+                    'inspection-cell-skipped', 'pulse'
                 );
-                
-                // Добавляем новый класс
+
                 let newStatusClass = 'inspection-cell-unchecked';
                 switch(status) {
-                    case 'checked-empty':
-                        newStatusClass = 'inspection-cell-checked-empty';
-                        break;
+                    case 'checked-empty': newStatusClass = 'inspection-cell-checked-empty'; break;
                     case 'discrepancy':
                         newStatusClass = 'inspection-cell-discrepancy';
                         selectedCellElement.classList.add('pulse');
@@ -2226,108 +3253,25 @@
                         newStatusClass = 'inspection-cell-problem';
                         selectedCellElement.classList.add('pulse');
                         break;
-                    case 'skipped':
-                        newStatusClass = 'inspection-cell-skipped';
-                        break;
+                    case 'skipped': newStatusClass = 'inspection-cell-skipped'; break;
                 }
-                
+
                 selectedCellElement.classList.add(newStatusClass);
             }
-            
-            // Сохраняем данные
+
             saveData();
-            
-            // Обновляем статистику
-            if (isInspecting) {
-                // Обновляем только текущую секцию в карусели
-                const currentSection = (currentSectionIndex + 1).toString().padStart(2, '0');
-                updateSectionIndicators(currentSection);
-            } else {
-                updateOverviewDisplay();
-            }
-            
-            // Показываем уведомление
-            let message = '';
-            let type = 'info';
-            
+            updateGlobalStats();
+
+            let message = '', type = 'info';
             switch(status) {
-                case 'checked-empty':
-                    message = `Ячейка ${selectedCell.id} отмечена как пустая`;
-                    type = 'success';
-                    break;
-                case 'discrepancy':
-                    message = `Ячейка ${selectedCell.id} отмечена как занятая (РАСХОЖДЕНИЕ!)`;
-                    type = 'warning';
-                    break;
-                case 'problem':
-                    message = `Ячейка ${selectedCell.id} отмечена как проблемная`;
-                    type = 'info';
-                    break;
-                case 'skipped':
-                    message = `Ячейка ${selectedCell.id} пропущена`;
-                    type = 'info';
-                    break;
+                case 'checked-empty': message = `${selectedCell.id} - пустая`; type = 'success'; break;
+                case 'discrepancy': message = `${selectedCell.id} - РАСХОЖДЕНИЕ!`; type = 'warning'; break;
+                case 'problem': message = `${selectedCell.id} - проблема`; type = 'info'; break;
+                case 'skipped': message = `${selectedCell.id} - пропущена`; type = 'info'; break;
             }
-            
+
             showNotification(message, type);
             closeModal();
-        }
-
-        function updateSectionIndicators(section) {
-            // Обновляем карточку секции в режиме обзора
-            const sectionCard = document.querySelector(`.section-card[data-section-index="${currentSectionIndex}"]`);
-            if (sectionCard) {
-                const sectionData = warehousesData[currentAlley][section];
-                if (sectionData) {
-                    const cells = sectionData.cells;
-                    const total = cells.length;
-                    const checked = cells.filter(cell => cell.checked && cell.actualStatus !== 'skipped').length;
-                    const discrepancies = cells.filter(cell => cell.actualStatus === 'discrepancy').length;
-                    const problems = cells.filter(cell => cell.actualStatus === 'problem').length;
-                    const progress = total > 0 ? Math.round((checked / total) * 100) : 0;
-                    
-                    // Обновляем статистику в карточке
-                    const stats = sectionCard.querySelectorAll('.section-card-stat-value');
-                    if (stats.length >= 4) {
-                        stats[0].textContent = total;
-                        stats[1].textContent = checked;
-                        stats[2].textContent = discrepancies;
-                        stats[3].textContent = problems;
-                    }
-                    
-                    // Обновляем прогресс-бар
-                    const progressFill = sectionCard.querySelector('.section-card-progress-fill');
-                    if (progressFill) {
-                        progressFill.style.width = `${progress}%`;
-                    }
-                    
-                    // Обновляем статус
-                    const statusElement = sectionCard.querySelector('.section-card-status');
-                    if (statusElement) {
-                        let statusClass = 'status-not-started';
-                        let statusText = 'Не начата';
-                        
-                        if (progress === 100) {
-                            statusClass = 'status-completed';
-                            statusText = 'Завершена';
-                        } else if (progress > 0 && progress < 100) {
-                            statusClass = 'status-in-progress';
-                            statusText = 'В процессе';
-                        }
-                        
-                        if (discrepancies > 0 || problems > 0) {
-                            statusClass = 'status-with-issues';
-                            statusText = 'Есть проблемы';
-                        }
-                        
-                        statusElement.className = `section-card-status ${statusClass}`;
-                        statusElement.textContent = statusText;
-                    }
-                }
-            }
-            
-            // Обновляем глобальную статистику
-            updateGlobalStats();
         }
 
         // ========== УВЕДОМЛЕНИЯ ==========
@@ -2336,167 +3280,916 @@
             notification.textContent = message;
             notification.className = 'notification';
             notification.classList.add(type, 'show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
+
+            setTimeout(() => notification.classList.remove('show'), 3000);
         }
 
         // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
         function setupEventListeners() {
-            // Выбор аллеи в режиме обзора
+            // Выбор аллеи
             document.getElementById('alley-select').addEventListener('change', function() {
                 currentAlley = this.value;
                 currentSectionIndex = 0;
                 updateOverviewDisplay();
-                showNotification(`Загружена аллея ${currentAlley}`, 'info');
+                showNotification(`Аллея ${currentAlley}`, 'info');
             });
-            
-            // Кнопка начала проверки
+
+            // Кнопки управления
             document.getElementById('start-inspection-btn').addEventListener('click', startInspection);
-            
-            // Кнопка импорта XLS
             document.getElementById('import-btn').addEventListener('click', openImportModal);
-            
-            // Кнопка экспорта CSV
             document.getElementById('export-btn').addEventListener('click', exportToCSV);
-            
-            // Кнопка завершения проверки
+            document.getElementById('history-btn').addEventListener('click', openHistoryModal);
             document.getElementById('exit-inspection-btn').addEventListener('click', exitInspection);
-            
+
             // Имя оператора
-            const operatorNameInput = document.getElementById('operator-name');
-            operatorNameInput.addEventListener('change', function() {
+            const operatorInput = document.getElementById('operator-name');
+            operatorInput.addEventListener('change', function() {
                 localStorage.setItem('warehouseOperator', this.value);
-                showNotification('Имя оператора сохранено', 'info');
             });
-            
-            // Загрузка сохраненного имени оператора
+
             const savedOperator = localStorage.getItem('warehouseOperator');
-            if (savedOperator) {
-                operatorNameInput.value = savedOperator;
-            }
-            
-            // Кнопки навигации карусели
+            if (savedOperator) operatorInput.value = savedOperator;
+
+            // Навигация карусели
             document.getElementById('carousel-prev').addEventListener('click', prevSection);
             document.getElementById('carousel-next').addEventListener('click', nextSection);
-            
-            // Модальное окно проверки - обработчики для опций
+
+            // Модальное окно проверки
             document.querySelectorAll('.modal-option').forEach(option => {
                 option.addEventListener('click', function() {
-                    const status = this.getAttribute('data-status');
-                    console.log('Выбран статус:', status);
-                    updateCellStatus(status);
+                    updateCellStatus(this.getAttribute('data-status'));
                 });
             });
-            
-            // Кнопка отмены в модальном окне проверки
+
             document.getElementById('modal-cancel').addEventListener('click', closeModal);
-            
-            // Закрытие модального окна проверки при клике на оверлей
+
             document.getElementById('modal-overlay').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeModal();
-                }
+                if (e.target === this) closeModal();
             });
-            
-            // Импорт: Drag & Drop
+
+            // Поиск
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', function() {
+                const results = searchCells(this.value);
+                showSearchResults(results);
+            });
+
+            searchInput.addEventListener('blur', function() {
+                setTimeout(() => {
+                    document.getElementById('search-results').classList.remove('show');
+                }, 200);
+            });
+
+            // Фильтры
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    applyFilter(this.dataset.filter);
+                });
+            });
+
+            // История
+            document.getElementById('history-close-btn').addEventListener('click', closeHistoryModal);
+            document.getElementById('history-export-btn').addEventListener('click', exportHistory);
+            document.getElementById('history-clear-btn').addEventListener('click', clearHistory);
+            document.getElementById('history-filter-cell').addEventListener('input', renderHistoryList);
+            document.getElementById('history-filter-date').addEventListener('change', renderHistoryList);
+
+            document.getElementById('history-modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) closeHistoryModal();
+            });
+
+            // Фото
+            document.getElementById('take-photo-btn').addEventListener('click', () => {
+                document.getElementById('camera-input').click();
+            });
+
+            document.getElementById('upload-photo-btn').addEventListener('click', () => {
+                document.getElementById('photo-file-input').click();
+            });
+
+            document.getElementById('camera-input').addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handlePhotoCapture(e.target.files[0]);
+            });
+
+            document.getElementById('photo-file-input').addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handlePhotoCapture(e.target.files[0]);
+            });
+
+            document.getElementById('photo-viewer-close').addEventListener('click', closePhotoViewer);
+            document.getElementById('photo-viewer-delete').addEventListener('click', deleteCurrentPhoto);
+
+            document.getElementById('photo-viewer-overlay').addEventListener('click', function(e) {
+                if (e.target === this) closePhotoViewer();
+            });
+
+            // Импорт
             const dropzone = document.getElementById('import-dropzone');
             const fileInput = document.getElementById('xls-file-input');
-            
+
             dropzone.addEventListener('click', () => fileInput.click());
-            
+
             fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    handleFileSelect(e.target.files[0]);
-                }
+                if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
             });
-            
-            // Drag & Drop события
+
             dropzone.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 dropzone.classList.add('dragover');
             });
-            
-            dropzone.addEventListener('dragleave', () => {
-                dropzone.classList.remove('dragover');
-            });
-            
+
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+
             dropzone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropzone.classList.remove('dragover');
-                
-                if (e.dataTransfer.files.length > 0) {
-                    handleFileSelect(e.dataTransfer.files[0]);
-                }
+                if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
             });
-            
-            // Кнопки модального окна импорта
+
             document.getElementById('import-start-btn').addEventListener('click', startImport);
             document.getElementById('import-cancel-btn').addEventListener('click', closeImportModal);
             document.getElementById('clear-file-btn').addEventListener('click', resetImportForm);
-            
-            // Закрытие модального окна импорта при клике на оверлей
+            document.getElementById('import-apply-btn').addEventListener('click', applyImport);
+            document.getElementById('reset-inspection-btn').addEventListener('click', resetInspectionProgress);
+
             document.getElementById('import-modal-overlay').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeImportModal();
-                }
+                if (e.target === this) closeImportModal();
             });
-            
-            // Закрытие по Escape
+
+            // Escape
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     closeModal();
                     closeImportModal();
+                    closeHistoryModal();
+                    closePhotoViewer();
                 }
             });
-            
-            // Обработка свайпов для навигации
+
+            // Свайпы
             setupSwipeHandlers();
-            
-            // Обработка изменения размера окна
+
+            // Resize
             window.addEventListener('resize', function() {
                 isMobile = window.innerWidth < 768;
-                
-                // При изменении размера в режиме проверки перерисовываем карусель
-                if (isInspecting) {
-                    updateInspectionCarousel();
-                }
+                if (isInspecting) updateInspectionCarousel();
             });
         }
 
-        // ========== ОБРАБОТКА СВАЙПОВ ==========
         function setupSwipeHandlers() {
             const carouselContainer = document.getElementById('carousel-container');
             if (!carouselContainer) return;
-            
+
             let touchStartX = 0;
             let touchEndX = 0;
             const minSwipeDistance = 50;
-            
-            carouselContainer.addEventListener('touchstart', function(e) {
+
+            carouselContainer.addEventListener('touchstart', (e) => {
                 touchStartX = e.changedTouches[0].screenX;
             }, { passive: true });
-            
-            carouselContainer.addEventListener('touchend', function(e) {
+
+            carouselContainer.addEventListener('touchend', (e) => {
                 touchEndX = e.changedTouches[0].screenX;
-                handleSwipe();
-            }, { passive: true });
-            
-            function handleSwipe() {
                 const swipeDistance = touchEndX - touchStartX;
-                
+
                 if (Math.abs(swipeDistance) > minSwipeDistance) {
-                    if (swipeDistance > 0) {
-                        // Свайп вправо -> предыдущая секция
-                        prevSection();
-                    } else {
-                        // Свайп влево -> следующая секция
-                        nextSection();
-                    }
+                    if (swipeDistance > 0) prevSection();
+                    else nextSection();
+                }
+            }, { passive: true });
+        }
+
+        // Canvas-hybrid Topology Renderer with pan/zoom support
+        class CanvasTopology {
+            constructor(containerId) {
+                this.containerId = containerId;
+                this.canvas = null;
+                this.ctx = null;
+                this.panX = 0;
+                this.panY = 0;
+                this.zoom = 1;
+                this.cellW = 24;
+                this.cellH = 16;
+                this.gap = 4;
+                this.sectionGap = 18;
+                this.alley = null;
+                this.cells = []; // flattened cell list with precomputed geometry
+                this.cellIndex = {}; // cellId -> index in cells array
+                this.lastMouseX = 0;
+                this.lastMouseY = 0;
+            }
+
+            init(alley) {
+                this.alley = alley;
+                const wrapper = document.getElementById(this.containerId);
+                if (!wrapper) return;
+                wrapper.innerHTML = '';
+
+                // Create canvas
+                this.canvas = document.createElement('canvas');
+                this.canvas.style.cssText = 'border: 1px solid #ddd; cursor: grab; display: block; background: white; width: 100%; height: 100%;';
+                this.canvas.width = wrapper.offsetWidth || 1000;
+                this.canvas.height = wrapper.offsetHeight || 500;
+                this.ctx = this.canvas.getContext('2d', { alpha: false });
+                wrapper.appendChild(this.canvas);
+
+                // Setup event handlers
+                this.setupEventHandlers();
+                this.buildCellIndex(alley);
+                this.render();
+            }
+
+            buildCellIndex(alley) {
+                this.cells = [];
+                this.cellIndex = {};
+
+                if (!warehousesData[alley]) return;
+
+                const sections = Object.keys(warehousesData[alley]).sort((a,b) => parseInt(a) - parseInt(b));
+                sections.forEach((section, sIdx) => {
+                    const baseX = sIdx * (3 * (this.cellW + this.gap) + this.sectionGap) + 10;
+                    tierOrder.forEach((tier, tIdx) => {
+                        positions.forEach((pos, pIdx) => {
+                            const x = baseX + pIdx * (this.cellW + this.gap);
+                            const y = 30 + tIdx * (this.cellH + this.gap);
+                            const cell = warehousesData[alley][section].cells.find(c => c.tier === tier && c.position === pos);
+                            const cellId = cell ? cell.id : `${alley}-${section}-${tier}-${pos}`;
+                            const idx = this.cells.length;
+                            this.cells.push({
+                                id: cellId,
+                                x, y, w: this.cellW, h: this.cellH,
+                                section, tier, pos,
+                                cell: cell,
+                                status: cell ? cell.systemStatus : 'unknown'
+                            });
+                            this.cellIndex[cellId] = idx;
+                        });
+                    });
+                });
+            }
+
+            getColor(status) {
+                switch (status) {
+                    case 'occupied': return '#f6c6c3';
+                    case 'empty': return '#d8f0db';
+                    default: return '#f0f0f0';
                 }
             }
+
+            setupEventHandlers() {
+                // Pan (drag)
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.canvas.style.cursor = 'grabbing';
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.lastMouseX = e.clientX - rect.left;
+                    this.lastMouseY = e.clientY - rect.top;
+                    const handleMouseMove = (e) => {
+                        const rect = this.canvas.getBoundingClientRect();
+                        const dx = (e.clientX - rect.left) - this.lastMouseX;
+                        const dy = (e.clientY - rect.top) - this.lastMouseY;
+                        this.panX += dx; this.panY += dy;
+                        this.lastMouseX = e.clientX - rect.left; this.lastMouseY = e.clientY - rect.top;
+                        this.render();
+                    };
+                    const handleMouseUp = () => {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                        this.canvas.style.cursor = 'grab';
+                    };
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                });
+
+                // Zoom (wheel)
+                this.canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const rect = this.canvas.getBoundingClientRect();
+                    const mx = e.clientX - rect.left;
+                    const my = e.clientY - rect.top;
+                    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+                    const oldZoom = this.zoom;
+                    this.zoom = Math.max(0.5, Math.min(5, this.zoom * factor));
+                    // zoom towards mouse
+                    this.panX = mx - (mx - this.panX) * (this.zoom / oldZoom);
+                    this.panY = my - (my - this.panY) * (this.zoom / oldZoom);
+                    this.render();
+                });
+
+                // Click to select cell
+                this.canvas.addEventListener('click', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const mx = e.clientX - rect.left;
+                    const my = e.clientY - rect.top;
+                    const hit = this.hitTest(mx, my);
+                    if (hit && hit.cell) {
+                        handleCellClick(hit.cell, null);
+                    }
+                });
+            }
+
+            hitTest(mx, my) {
+                // transform mouse coords to world coords
+                const wx = (mx - this.panX) / this.zoom;
+                const wy = (my - this.panY) / this.zoom;
+
+                // linear search (can optimize with spatial index if needed)
+                for (let cellData of this.cells) {
+                    if (wx >= cellData.x && wx <= cellData.x + cellData.w &&
+                        wy >= cellData.y && wy <= cellData.y + cellData.h) {
+                        return cellData;
+                    }
+                }
+                return null;
+            }
+
+            render() {
+                this.ctx.save();
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.translate(this.panX, this.panY);
+                this.ctx.scale(this.zoom, this.zoom);
+
+                // Draw cells (virtualization: only visible ones)
+                const viewBox = {
+                    x: -this.panX / this.zoom,
+                    y: -this.panY / this.zoom,
+                    w: this.canvas.width / this.zoom,
+                    h: this.canvas.height / this.zoom
+                };
+                const margin = Math.max(this.cellW, this.cellH) + 20;
+
+                for (let cellData of this.cells) {
+                    // Check if in viewport
+                    if (cellData.x + cellData.w < viewBox.x - margin ||
+                        cellData.x > viewBox.x + viewBox.w + margin ||
+                        cellData.y + cellData.h < viewBox.y - margin ||
+                        cellData.y > viewBox.y + viewBox.h + margin) {
+                        continue; // skip, not visible
+                    }
+
+                    // Draw cell
+                    this.ctx.fillStyle = this.getColor(cellData.status);
+                    this.ctx.fillRect(cellData.x, cellData.y, cellData.w, cellData.h);
+                    this.ctx.strokeStyle = '#ccc';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.strokeRect(cellData.x, cellData.y, cellData.w, cellData.h);
+
+                    // Draw label
+                    this.ctx.fillStyle = '#333';
+                    this.ctx.font = '9px sans-serif';
+                    this.ctx.textAlign = 'left';
+                    this.ctx.textBaseline = 'bottom';
+                    this.ctx.fillText(cellData.pos, cellData.x + 2, cellData.y + cellData.h - 1);
+                }
+
+                // Draw section labels
+                const sections = Object.keys(warehousesData[this.alley] || {}).sort((a,b) => parseInt(a) - parseInt(b));
+                sections.forEach((section, sIdx) => {
+                    const baseX = sIdx * (3 * (this.cellW + this.gap) + this.sectionGap) + 10;
+                    if (baseX > viewBox.x - 50 && baseX < viewBox.x + viewBox.w + 50) {
+                        this.ctx.fillStyle = '#333';
+                        this.ctx.font = 'bold 11px sans-serif';
+                        this.ctx.textAlign = 'left';
+                        this.ctx.textBaseline = 'top';
+                        this.ctx.fillText(`С${section}`, baseX, 12);
+                    }
+                });
+
+                this.ctx.restore();
+
+                // Draw zoom/pan hint
+                this.ctx.fillStyle = '#666';
+                this.ctx.font = '11px sans-serif';
+                this.ctx.fillText(`Zoom: ${this.zoom.toFixed(1)}x (🖱 колесо для масштаб., перетащить для сдвиг)`, 10, this.canvas.height - 8);
+            }
+
+            refresh() {
+                if (warehousesData[this.alley]) {
+                    this.buildCellIndex(this.alley);
+                    this.render();
+                }
+            }
+
+            reset() {
+                this.panX = 0; this.panY = 0; this.zoom = 1;
+                this.render();
+            }
         }
+
+        let topologyRenderer = null;
+
+        function toggleTopologyView() {
+            const container = document.getElementById('topology-container');
+            const btn = document.getElementById('topology-btn');
+            if (!container) return;
+            const isShown = container.style.display === 'block';
+            if (isShown) {
+                container.style.display = 'none';
+                if (btn) btn.classList.remove('active');
+            } else {
+                container.style.display = 'block';
+                if (btn) btn.classList.add('active');
+                document.getElementById('topology-alley').textContent = currentAlley;
+                if (!topologyRenderer) {
+                    topologyRenderer = new CanvasTopology('topology-svg-wrapper');
+                }
+                topologyRenderer.init(currentAlley);
+            }
+        }
+
+        function findCellById(cellId) {
+            for (const alley in warehousesData) {
+                for (const section in warehousesData[alley]) {
+                    const cell = warehousesData[alley][section].cells.find(c => c.id === cellId);
+                    if (cell) return cell;
+                }
+            }
+            return null;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const topologyBtn = document.getElementById('topology-btn');
+            if (topologyBtn) topologyBtn.addEventListener('click', toggleTopologyView);
+            const topologyClose = document.getElementById('topology-close-btn');
+            if (topologyClose) topologyClose.addEventListener('click', () => { document.getElementById('topology-container').style.display = 'none'; topologyRenderer?.reset(); });
+            const topologyRefresh = document.getElementById('topology-refresh-btn');
+            if (topologyRefresh) topologyRefresh.addEventListener('click', () => { topologyRenderer?.refresh(); });
+        });
     </script>
+
+<script>
+/**
+ * Iframe 元素高亮注入脚本
+ * 需要在目标网站中引入此脚本来支持跨域 iframe 高亮功能
+ *
+ * 使用方法：
+ * 1. 将此脚本添加到目标网站的 HTML 中
+ * 2. 或通过浏览器扩展、用户脚本等方式注入
+ */
+
+(function () {
+  "use strict";
+
+  // 检查是否在 iframe 中
+  if (window.self === window.top) {
+    return; // 不在 iframe 中，不执行
+  }
+
+  // 检查是否已经初始化过
+  if (window.__iframeHighlightInitialized) {
+    return;
+  }
+  window.__iframeHighlightInitialized = true;
+  console.log("Iframe 高亮脚本已加载");
+
+  // 创建高亮覆盖层
+  var overlay = document.createElement("div");
+  overlay.id = "iframe-highlight-overlay";
+  overlay.style.cssText = "\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    pointer-events: none;\n    z-index: 999999;\n    overflow: hidden;\n  ";
+
+  // 创建悬停高亮框（虚线边框）
+  var highlightBox = document.createElement("div");
+  highlightBox.id = "iframe-highlight-box";
+  highlightBox.style.cssText = "\n    position: absolute;\n    border: 2px dashed #007AFF;\n    background: rgba(0, 122, 255, 0.08);\n    pointer-events: none;\n    display: none;\n    transition: all 0.1s ease;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);\n    border-radius: 2px;\n  ";
+
+  // 创建选中节点的常驻高亮框（实线边框）
+  var selectedBox = document.createElement("div");
+  selectedBox.id = "iframe-selected-box";
+  selectedBox.style.cssText = "\n    position: absolute;\n    border: 2px solid #007AFF;\n    pointer-events: none;\n    display: none;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 107, 53, 0.4);\n    border-radius: 2px;\n    z-index: 1000000;\n  ";
+
+  // 创建悬停标签显示
+  var tagLabel = document.createElement("div");
+  tagLabel.id = "iframe-tag-label";
+  tagLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 2px 6px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 2px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000001;\n    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\n    font-weight: 500;\n  ";
+
+  // 创建选中节点标签
+  var selectedLabel = document.createElement("div");
+  selectedLabel.id = "iframe-selected-label";
+  selectedLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 3px 8px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 3px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000002;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n    font-weight: 600;\n  ";
+  overlay.appendChild(highlightBox);
+  overlay.appendChild(selectedBox);
+  overlay.appendChild(tagLabel);
+  overlay.appendChild(selectedLabel);
+  document.body.appendChild(overlay);
+
+  // 存储当前选中的元素
+  var selectedElement = null;
+  var highlightEnabled = false;
+
+  // 更新选中元素的高亮显示
+  function updateSelectedHighlight(element) {
+    console.log("updateSelectedHighlight called with:", element);
+    if (!element) {
+      selectedBox.style.display = "none";
+      selectedLabel.style.display = "none";
+      selectedElement = null;
+      console.log("Cleared selected highlight");
+      return;
+    }
+    selectedElement = element;
+    var rect = element.getBoundingClientRect();
+    console.log("Selected element rect:", rect);
+
+    // 更新选中高亮框位置
+    selectedBox.style.display = "block";
+    selectedBox.style.left = "".concat(rect.left - 2, "px");
+    selectedBox.style.top = "".concat(rect.top - 2, "px");
+    selectedBox.style.width = "".concat(rect.width + 4, "px");
+    selectedBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新选中标签位置和内容
+    selectedLabel.style.display = "block";
+    selectedLabel.textContent = "\u2713 <".concat(element.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 28;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 5) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    var labelWidth = selectedLabel.offsetWidth || 100; // 预估宽度
+    if (labelLeft + labelWidth > window.innerWidth - 10) {
+      labelLeft = window.innerWidth - labelWidth - 10;
+    }
+    selectedLabel.style.left = "".concat(Math.max(5, labelLeft), "px");
+    selectedLabel.style.top = "".concat(labelTop, "px");
+    console.log("Selected highlight positioned at:", {
+      left: selectedBox.style.left,
+      top: selectedBox.style.top,
+      width: selectedBox.style.width,
+      height: selectedBox.style.height
+    });
+  }
+  function getElementSelector(element) {
+    if (!(element instanceof Element)) throw new Error('Argument must be a DOM element');
+    var segments = [];
+    var current = element;
+    while (current !== document.documentElement) {
+      var selector = '';
+      // 优先检查唯一ID
+      if (current.id && document.querySelectorAll("#".concat(current.id)).length === 1) {
+        segments.unshift("#".concat(current.id));
+        break; // ID唯一，无需继续向上
+      }
+
+      // 生成类名选择器（取第一个有效类名）
+      var classes = Array.from(current.classList).filter(function (c) {
+        return !c.startsWith('js-');
+      });
+      var className = classes.length > 0 ? ".".concat(classes[0]) : '';
+
+      // 生成位置索引（nth-child）
+      var tag = current.tagName.toLowerCase();
+      if (!className) {
+        var siblings = Array.from(current.parentNode.children);
+        var index = siblings.findIndex(function (el) {
+          return el === current;
+        }) + 1;
+        selector = "".concat(tag, ":nth-child(").concat(index, ")");
+      } else {
+        selector = className;
+      }
+      segments.unshift(selector);
+      current = current.parentElement;
+    }
+
+    // 处理根元素
+    if (current === document.documentElement) {
+      segments.unshift('html');
+    }
+    return segments.join(' > ');
+  }
+
+  // 获取元素文本内容
+  function getElementText(element) {
+    var _element$textContent;
+    if (element.tagName === "INPUT") {
+      return element.value || element.placeholder || "";
+    }
+    if (element.tagName === "TEXTAREA") {
+      return element.value || element.placeholder || "";
+    }
+    var text = ((_element$textContent = element.textContent) === null || _element$textContent === void 0 ? void 0 : _element$textContent.trim()) || "";
+    return text.length > 50 ? text.substring(0, 50) + "..." : text;
+  }
+
+  // 获取元素属性信息
+  function getElementAttributes(element) {
+    var attrs = {};
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      attrs[attr.name] = attr.value;
+    }
+    return attrs;
+  }
+
+  // 鼠标悬停事件处理
+  function handleMouseOver(e) {
+    if (!highlightEnabled) return;
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免高亮 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 如果是已选中的元素，不显示悬停高亮
+    if (target === selectedElement) {
+      highlightBox.style.display = "none";
+      tagLabel.style.display = "none";
+      return;
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+
+    // 更新悬停高亮框位置
+    highlightBox.style.display = "block";
+    highlightBox.style.left = "".concat(rect.left - 2, "px");
+    highlightBox.style.top = "".concat(rect.top - 2, "px");
+    highlightBox.style.width = "".concat(rect.width + 4, "px");
+    highlightBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新标签位置和内容
+    tagLabel.style.display = "block";
+    tagLabel.textContent = "<".concat(target.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 22;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 0) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    if (labelLeft + tagLabel.offsetWidth > window.innerWidth) {
+      labelLeft = window.innerWidth - tagLabel.offsetWidth - 5;
+    }
+    tagLabel.style.left = "".concat(Math.max(0, labelLeft), "px");
+    tagLabel.style.top = "".concat(labelTop, "px");
+
+    // 发送消息到父窗口
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 鼠标离开事件处理
+  function handleMouseOut(e) {
+    if (!highlightEnabled) return;
+    var relatedTarget = e.relatedTarget;
+
+    // 如果鼠标移动到高亮相关元素上，不隐藏高亮
+    if (relatedTarget && (relatedTarget === highlightBox || relatedTarget === tagLabel || relatedTarget === overlay || relatedTarget === selectedBox || relatedTarget === selectedLabel)) {
+      return;
+    }
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: null,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 点击事件处理
+  function handleClick(e) {
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免处理 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 检查是否是交互元素，这些元素需要保留默认行为
+    var isInteractiveElement = ['input', 'textarea', 'select', 'button', 'a'].includes(target.tagName.toLowerCase());
+
+    // 如果高亮功能启用，对于非交互元素阻止默认行为和事件传播
+    if (highlightEnabled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+    console.log("Element clicked:", {
+      tagName: target.tagName,
+      selector: selector,
+      rect: rect
+    });
+
+    // 立即更新选中高亮
+    updateSelectedHighlight(target);
+
+    // 隐藏悬停高亮，因为现在是选中状态
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-click",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 监听来自父窗口的消息
+  function handleParentMessage(event) {
+    console.log("Received message from parent:", event.data);
+    if (event.data.type === "iframe-highlight-toggle") {
+      var enabled = event.data.enabled;
+      console.log("Highlight toggle:", enabled);
+      if (enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "enable-iframe-highlight") {
+      console.log("Enable iframe highlight");
+      enableHighlight();
+    } else if (event.data.type === "disable-iframe-highlight") {
+      console.log("Disable iframe highlight");
+      disableHighlight();
+    } else if (event.data.type === "toggle-iframe-highlight") {
+      var _enabled = event.data.enabled !== undefined ? event.data.enabled : !highlightEnabled;
+      console.log("Toggle iframe highlight to:", _enabled);
+      if (_enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "update-selected-element") {
+      var selector = event.data.selector;
+      console.log("Update selected element with selector:", selector);
+      if (selector) {
+        try {
+          var element = document.querySelector(selector);
+          console.log("Found element by selector:", element);
+          updateSelectedHighlight(element);
+        } catch (error) {
+          console.warn("Failed to select element:", error);
+          updateSelectedHighlight(null);
+        }
+      } else {
+        updateSelectedHighlight(null);
+      }
+    } else if (event.data.type === "clear-selected-element") {
+      console.log("Clear selected element");
+      updateSelectedHighlight(null);
+    }
+  }
+
+  // 启用高亮功能
+  function enableHighlight() {
+    console.log("Enabling highlight");
+    document.addEventListener("mouseover", handleMouseOver, true);
+    document.addEventListener("mouseout", handleMouseOut, true);
+    document.addEventListener("click", handleClick, true);
+    highlightEnabled = true;
+    overlay.style.display = "block";
+  }
+
+  // 禁用高亮功能
+  function disableHighlight() {
+    console.log("Disabling highlight");
+    highlightEnabled = false;
+    // 保持事件监听器，但通过 highlightEnabled 变量控制行为
+    // 这样可以保留选中状态的显示
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    // 不隐藏 selectedBox 和 selectedLabel，保留选中状态
+  }
+
+  // 完全禁用高亮功能（移除所有监听器）
+  function fullyDisableHighlight() {
+    console.log("Fully disabling highlight");
+    highlightEnabled = false;
+    document.removeEventListener("mouseover", handleMouseOver, true);
+    document.removeEventListener("mouseout", handleMouseOut, true);
+    document.removeEventListener("click", handleClick, true);
+    overlay.style.display = "none";
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    selectedBox.style.display = "none";
+    selectedLabel.style.display = "none";
+  }
+
+  // 添加事件监听
+  enableHighlight();
+  window.addEventListener("message", handleParentMessage);
+
+  // 暴露全局函数供外部调用
+  window.__iframeHighlightControl = {
+    enable: enableHighlight,
+    disable: disableHighlight,
+    fullyDisable: fullyDisableHighlight,
+    isEnabled: function isEnabled() {
+      return highlightEnabled;
+    },
+    getSelectedElement: function getSelectedElement() {
+      return selectedElement;
+    },
+    updateSelected: updateSelectedHighlight,
+    // 通过消息发送开关控制
+    sendToggleMessage: function sendToggleMessage(enabled) {
+      window.parent.postMessage({
+        type: 'iframe-highlight-status',
+        enabled: enabled || highlightEnabled,
+        source: 'iframe-highlight-injector'
+      }, '*');
+    }
+  };
+
+  // 通知父窗口脚本已加载
+  try {
+    window.parent.postMessage({
+      type: "iframe-highlight-ready",
+      data: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: Date.now()
+      },
+      source: "iframe-highlight-injector"
+    }, "*");
+  } catch (error) {
+    console.warn("无法发送就绪消息到父窗口:", error);
+  }
+
+  // 清理函数
+  window.__iframeHighlightCleanup = function () {
+    fullyDisableHighlight();
+    window.removeEventListener("message", handleParentMessage);
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+    delete window.__iframeHighlightInitialized;
+    delete window.__iframeHighlightCleanup;
+  };
+})();
+
+</script>
 </body>
 </html>

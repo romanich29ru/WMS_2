@@ -1,0 +1,601 @@
+<!-- ========================================================
+     ИНСТРУКЦИЯ ПО ТЕСТИРОВАНИЮ МНОЖЕСТВЕННЫХ АРТИКУЛОВ
+     Копировать в HTML для быстрого тестирования
+     ======================================================== -->
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS - Тест множественных артикулов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-section h2 {
+            color: #3498db;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .test-card {
+            background: #f8f9fa;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .test-card:hover {
+            border-color: #3498db;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+        }
+
+        .test-card h3 {
+            color: #2c3e50;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .test-card p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .test-card code {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+            font-size: 0.85rem;
+        }
+
+        .test-button {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .test-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .test-button:active {
+            transform: translateY(0);
+        }
+
+        .button-danger {
+            background: #e74c3c;
+        }
+
+        .button-danger:hover {
+            background: #c0392b;
+        }
+
+        .test-data {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            color: #2c3e50;
+        }
+
+        .test-data pre {
+            margin: 0;
+        }
+
+        .info-box {
+            background: #d5f4e6;
+            border-left: 4px solid #27ae60;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #27ae60;
+        }
+
+        .error-box {
+            background: #fee2e2;
+            border-left: 4px solid #e74c3c;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #991b1b;
+        }
+
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #f39c12;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #92400e;
+        }
+
+        .console-output {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .console-output.empty {
+            color: #95a5a6;
+            font-style: italic;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #3498db;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .stat {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .status-ok {
+            border-left-color: #27ae60;
+        }
+
+        .status-error {
+            border-left-color: #e74c3c;
+        }
+
+        .status-warning {
+            border-left-color: #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 WMS v2.0 - Тестирование множественных артикулов</h1>
+        <p class="subtitle">
+            Система валидации XLS для обнаружения ошибок с множественными артикулами в одной ячейке
+        </p>
+
+        <!-- ============= РАЗДЕЛ 1: ТЕС ТНЫЕ ПРИМЕРЫ ============= -->
+        <div class="test-section">
+            <h2>1️⃣ Тестовые данные</h2>
+
+            <p>Выберите тестовый сценарий для проверки функционала:</p>
+
+            <div class="test-grid">
+                <!-- Правильные данные -->
+                <div class="test-card">
+                    <h3>✅ Правильный XLS</h3>
+                    <p>Без ошибок, каждой ячейке - один артикул</p>
+                    <button class="test-button" onclick="testCorrectXLS()">
+                        📥 Загрузить
+                    </button>
+                </div>
+
+                <!-- С множественными артикулами -->
+                <div class="test-card">
+                    <h3>❌ Множественные артикулы</h3>
+                    <p>Несколько артикулов в одной ячейке (ОШИБКА)</p>
+                    <button class="test-button button-danger" onclick="testMultipleArticles()">
+                        📥 Загрузить
+                    </button>
+                </div>
+
+                <!-- Смешанные ошибки -->
+                <div class="test-card">
+                    <h3>⚠️ Смешанные ошибки</h3>
+                    <p>Комбинация правильных и ошибочных данных</p>
+                    <button class="test-button button-danger" onclick="testMixedErrors()">
+                        📥 Загрузить
+                    </button>
+                </div>
+
+                <!-- Пустые ячейки -->
+                <div class="test-card">
+                    <h3>⬜ Пустые ячейки</h3>
+                    <p>Нормальные и пустые ячейки без артикулов</p>
+                    <button class="test-button" onclick="testEmptyCells()">
+                        📥 Загрузить
+                    </button>
+                </div>
+
+                <!-- Разные разделители -->
+                <div class="test-card">
+                    <h3>🔀 Разные разделители</h3>
+                    <p>Артикулы с ; | , разделителями (ОШИБКА)</p>
+                    <button class="test-button button-danger" onclick="testDifferentDelimiters()">
+                        📥 Загрузить
+                    </button>
+                </div>
+
+                <!-- Формат OS -->
+                <div class="test-card">
+                    <h3>🔄 Формат OS</h3>
+                    <p>Ячейки в формате "OS A01-01-01-A"</p>
+                    <button class="test-button" onclick="testOSFormat()">
+                        📥 Загрузить
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============= РАЗДЕЛ 2: ВАЛИДАЦИЯ ============= -->
+        <div class="test-section">
+            <h2>2️⃣ Результаты валидации</h2>
+
+            <div class="stats" id="stats">
+                <div class="stat">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Обработано</div>
+                </div>
+                <div class="stat status-ok">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">✅ OK</div>
+                </div>
+                <div class="stat status-error">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">❌ Ошибок</div>
+                </div>
+                <div class="stat status-warning">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">⚠️ Множественные</div>
+                </div>
+            </div>
+
+            <div id="report" class="test-data" style="display: none;">
+                <pre id="report-content"></pre>
+            </div>
+        </div>
+
+        <!-- ============= РАЗДЕЛ 3: КОНСОЛЬ ============= -->
+        <div class="test-section">
+            <h2>3️⃣ Консоль вывода</h2>
+
+            <button class="test-button" onclick="clearConsole()" style="margin-bottom: 15px;">
+                🗑️ Очистить консоль
+            </button>
+
+            <div class="console-output empty" id="console">
+                Результаты вывода будут здесь...
+            </div>
+        </div>
+
+        <!-- ============= РАЗДЕЛ 4: ИНСТРУКЦИИ ============= -->
+        <div class="test-section">
+            <h2>4️⃣ Использование</h2>
+
+            <div class="info-box">
+                <strong>✅ Как работает система:</strong><br>
+                1. Нажмите на любую кнопку "Загрузить"<br>
+                2. Система загрузит тестовые данные XLS<br>
+                3. Валидатор проверит каждую ячейку<br>
+                4. Результаты появятся в этом разделе<br>
+                5. Консоль покажет подробный отчет
+            </div>
+
+            <div class="error-box">
+                <strong>❌ Что такое ошибка множественных артикулов?</strong><br>
+                Если в одной ячейке указано несколько артикулов (например, "SKU-001; SKU-002"), это ОШИБКА!<br>
+                В одной физической ячейке может быть только ОДИН артикул.
+            </div>
+
+            <div class="warning-box">
+                <strong>⚠️ Как исправить?</strong><br>
+                Если есть несколько артикулов - создайте отдельные строки в XLS для каждого артикула<br>
+                Пример: A01-01-01-A → SKU-001 в строке 1<br>
+                A01-01-02-A → SKU-002 в строке 2
+            </div>
+        </div>
+
+        <!-- ============= РАЗДЕЛ 5: API ============= -->
+        <div class="test-section">
+            <h2>5️⃣ API функции</h2>
+
+            <div class="test-data">
+// Парсить и валидировать XLS
+const results = XLSArticlesValidator.parseAndValidate(xlsData);
+
+// Результат содержит:
+// - results.cellsData: данные по ячейкам
+// - results.errors: все ошибки
+// - results.multipleArticlesErrors: только ошибки множественности
+// - results.statistics: статистика обработки
+
+// Генерировать HTML отчет
+const htmlReport = XLSArticlesValidator.generateHTMLReport(results);
+document.getElementById('report').innerHTML = htmlReport;
+
+// Получить текстовый отчет
+const report = XLSArticlesValidator.generateErrorReport(results);
+console.log(report.summary);
+            </div>
+        </div>
+
+        <!-- ============= РАЗДЕЛ 6: ПРИМЕРЫ ВЫВОДА ============= -->
+        <div class="test-section">
+            <h2>6️⃣ Примеры ошибок</h2>
+
+            <h3 style="margin: 15px 0 10px 0; color: #2c3e50;">❌ Пример 1: Два артикула в ячейке</h3>
+            <div class="error-box">
+                <strong>Ячейка: A01-01-01-A</strong><br>
+                Артикулы: SKU-001, SKU-002<br>
+                <strong style="color: #991b1b;">ОШИБКА: В ячейке 2 артикулов вместо 1</strong>
+            </div>
+
+            <h3 style="margin: 15px 0 10px 0; color: #2c3e50;">❌ Пример 2: Три артикула</h3>
+            <div class="error-box">
+                <strong>Ячейка: A01-01-02-A</strong><br>
+                Артикулы: SKU-003; SKU-004; SKU-005<br>
+                <strong style="color: #991b1b;">ОШИБКА: В ячейке 3 артикулов вместо 1</strong>
+            </div>
+
+            <h3 style="margin: 15px 0 10px 0; color: #2c3e50;">✅ Пример 3: Один артикул (OK)</h3>
+            <div class="info-box">
+                <strong>Ячейка: A01-01-03-A</strong><br>
+                Артикулы: SKU-006<br>
+                <strong>✅ Артикул заполнен корректно</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Подключить валидатор -->
+    <script src="/modules/xls-articles-validator.js"></script>
+    <script>
+        // Консоль вывода
+        function log(message) {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString('ru');
+            const line = `[${timestamp}] ${message}`;
+            
+            if (console.classList.contains('empty')) {
+                console.classList.remove('empty');
+                console.textContent = line;
+            } else {
+                console.textContent += '\n' + line;
+            }
+            
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function clearConsole() {
+            const console = document.getElementById('console');
+            console.classList.add('empty');
+            console.textContent = 'Результаты вывода будут здесь...';
+        }
+
+        // Показать отчет
+        function showReport(results) {
+            const stats = document.getElementById('stats');
+            const report = document.getElementById('report');
+
+            // Обновить статистику
+            const statsDiv = `
+                <div class="stat">
+                    <div class="stat-value">${results.statistics.cellsProcessed}</div>
+                    <div class="stat-label">Обработано</div>
+                </div>
+                <div class="stat status-ok">
+                    <div class="stat-value">${results.statistics.cellsOk}</div>
+                    <div class="stat-label">✅ OK</div>
+                </div>
+                <div class="stat status-error">
+                    <div class="stat-value">${results.statistics.cellsWithErrors}</div>
+                    <div class="stat-label">❌ Ошибок</div>
+                </div>
+                <div class="stat status-warning">
+                    <div class="stat-value">${results.statistics.cellsWithMultipleArticles}</div>
+                    <div class="stat-label">⚠️ Множественные</div>
+                </div>
+            `;
+            stats.innerHTML = statsDiv;
+
+            // Показать отчет
+            const reportText = JSON.stringify(results.statistics, null, 2) + '\n\n' +
+                              'Ошибки:\n' +
+                              results.errors.map(e => `- ${e.cellId || e.error}`).join('\n');
+            
+            document.getElementById('report-content').textContent = reportText;
+            report.style.display = 'block';
+        }
+
+        // ============= ТЕСТОВЫЕ ФУНКЦИИ =============
+
+        function testCorrectXLS() {
+            log('📥 Загрузка: Правильный XLS (без ошибок)...');
+
+            const data = [
+                { 'Название Ячейки': 'A01-01-01-A', 'Статус': 'occupied', 'Артикул': 'SKU-001', 'Кол-во': '5' },
+                { 'Название Ячейки': 'A01-01-02-A', 'Статус': 'occupied', 'Артикул': 'SKU-002', 'Кол-во': '3' },
+                { 'Название Ячейки': 'A01-01-03-A', 'Статус': 'empty' }
+            ];
+
+            const results = XLSArticlesValidator.parseAndValidate(data);
+            log(`✅ Валидация завершена: ${results.statistics.cellsProcessed} ячеек обработано`);
+            log(`✅ Без ошибок: ${results.statistics.cellsOk}`);
+            log(`❌ Ошибок: ${results.statistics.cellsWithErrors}`);
+            
+            showReport(results);
+        }
+
+        function testMultipleArticles() {
+            log('📥 Загрузка: Множественные артикулы (ОШИБКА)...');
+
+            const data = [
+                { 'Название Ячейки': 'A01-01-01-A', 'Статус': 'occupied', 'Артикул': 'SKU-001; SKU-002', 'Кол-во': '5; 3' },
+                { 'Название Ячейки': 'A01-01-02-A', 'Статус': 'occupied', 'Артикул': 'SKU-003|SKU-004|SKU-005', 'Кол-во': '2, 2, 1' },
+                { 'Название Ячейки': 'A01-01-03-A', 'Статус': 'occupied', 'Артикул': 'SKU-006', 'Кол-во': '4' }
+            ];
+
+            const results = XLSArticlesValidator.parseAndValidate(data);
+            log(`⚠️ Валидация завершена: ${results.statistics.cellsProcessed} ячеек обработано`);
+            log(`❌ С ошибками множественных артикулов: ${results.statistics.cellsWithMultipleArticles}`);
+            log(`📋 Ошибки:`);
+            results.multipleArticlesErrors.forEach(e => {
+                log(`  - ${e.cellId}: ${e.articles.map(a => a.sku).join(', ')}`);
+            });
+            
+            showReport(results);
+        }
+
+        function testMixedErrors() {
+            log('📥 Загрузка: Смешанные данные (правильные + ошибки)...');
+
+            const data = [
+                { 'Название Ячейки': 'A01-01-01-A', 'Статус': 'occupied', 'Артикул': 'SKU-001', 'Кол-во': '5' },
+                { 'Название Ячейки': 'A01-01-02-A', 'Статус': 'occupied', 'Артикул': 'SKU-002; SKU-003', 'Кол-во': '3; 2' },
+                { 'Название Ячейки': 'A01-01-03-A', 'Статус': 'empty' },
+                { 'Название Ячейки': 'A01-01-04-A', 'Статус': 'occupied', 'Артикул': 'SKU-004|SKU-005', 'Кол-во': '1, 1' },
+                { 'Название Ячейки': 'A01-01-05-A', 'Статус': 'occupied', 'Артикул': 'SKU-006', 'Кол-во': '10' }
+            ];
+
+            const results = XLSArticlesValidator.parseAndValidate(data);
+            log(`✅ Обработано: ${results.statistics.cellsProcessed}`);
+            log(`✅ OK: ${results.statistics.cellsOk} | ❌ Ошибок: ${results.statistics.cellsWithMultipleArticles}`);
+            
+            showReport(results);
+        }
+
+        function testEmptyCells() {
+            log('📥 Загрузка: Пустые ячейки...');
+
+            const data = [
+                { 'Название Ячейки': 'A01-01-01-A', 'Статус': 'empty' },
+                { 'Название Ячейки': 'A01-01-02-A', 'Статус': 'occupied', 'Артикул': 'SKU-001', 'Кол-во': '5' },
+                { 'Название Ячейки': 'A01-01-03-A', 'Статус': 'empty' },
+                { 'Название Ячейки': 'A01-01-04-A', 'Статус': 'empty' }
+            ];
+
+            const results = XLSArticlesValidator.parseAndValidate(data);
+            log(`✅ Обработано: ${results.statistics.cellsProcessed}`);
+            log(`📭 Пусто: ${results.statistics.emptyCells}`);
+            log(`📦 Занято: ${results.statistics.occupiedCells}`);
+            
+            showReport(results);
+        }
+
+        function testDifferentDelimiters() {
+            log('📥 Загрузка: Разные разделители...');
+
+            const data = [
+                { 'Название Ячейки': 'A01-01-01-A', 'Статус': 'occupied', 'Артикул': 'SKU-001; SKU-002', 'Кол-во': '5; 3' },
+                { 'Название Ячейки': 'A01-01-02-A', 'Статус': 'occupied', 'Артикул': 'SKU-003|SKU-004', 'Кол-во': '2|1' },
+                { 'Название Ячейки': 'A01-01-03-A', 'Статус': 'occupied', 'Артикул': 'SKU-005,SKU-006', 'Кол-во': '4,2' }
+            ];
+
+            const results = XLSArticlesValidator.parseAndValidate(data);
+            log(`⚠️ Ошибок с множественными артикулами: ${results.statistics.cellsWithMultipleArticles}`);
+            
+            showReport(results);
+        }
+
+        function testOSFormat() {
+            log('📥 Загрузка: Формат с префиксом OS...');
+
+            const data = [
+                { 'Название Ячейки': 'OS A01-01-01-A', 'Статус': 'occupied', 'Артикул': 'SKU-001', 'Кол-во': '5' },
+                { 'Название Ячейки': 'OS A01-01-02-A', 'Статус': 'occupied', 'Артикул': 'SKU-002', 'Кол-во': '3' },
+                { 'Название Ячейки': 'A01-01-03-A', 'Статус': 'empty' }
+            ];
+
+            const results = XLSArticlesValidator.parseAndValidate(data);
+            log(`✅ Правильно распознано: ${results.statistics.cellsProcessed} ячеек`);
+            log(`✅ Без ошибок: ${results.statistics.cellsOk}`);
+            
+            showReport(results);
+        }
+
+        log('🟢 Тестовая система готова. Нажмите на кнопку "Загрузить" для начала.');
+    </script>
+</body>
+</html>

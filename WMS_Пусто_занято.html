@@ -66,6 +66,13 @@
             color: var(--primary-color);
         }
 
+        .app-version {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
         .operator-info {
             display: flex;
             align-items: center;
@@ -352,6 +359,8 @@
             flex: 1;
             position: relative;
             overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            max-height: 100vh;
         }
 
         .inspection-sections-carousel {
@@ -465,6 +474,26 @@
             color: #777;
         }
 
+        /* Бейдж конфликтов артикулов (не перекрывает позиционную букву) */
+        .conflict-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            background-color: var(--warning-color);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            pointer-events: none;
+        }
+
         /* Цвета состояний ячеек */
         .inspection-cell-unchecked {
             background-color: var(--success-color);
@@ -500,70 +529,89 @@
             50% { opacity: 0.7; }
             100% { opacity: 1; }
         }
+        
 
-        /* Выделение зон */
-        .inspection-tier-picking {
-            background-color: rgba(231, 76, 60, 0.05);
-        }
+                // Сначала пробуем привычные шаблоны с разделителями
+                const match1 = cleanedWithSpaces.match(pattern1);
+                const match2 = cleanedWithSpaces.match(pattern2);
 
-        .inspection-tier-upper {
-            background-color: rgba(52, 152, 219, 0.05);
-        }
+                if (match1) {
+                    alley = match1[1].toUpperCase() + match1[2].padStart(2, '0'); // A5 → A05
+                    section = match1[3].padStart(2, '0');
+                    tier = match1[4].padStart(2, '0');
+                    position = match1[5].toUpperCase();
+                } else if (match2) {
+                    alley = match2[1].toUpperCase() + match2[2].padStart(2, '0').slice(-2);
+                    section = match2[3].padStart(2, '0');
+                    tier = match2[4].padStart(2, '0');
+                    const depth = parseInt(match2[5], 10);
+                    position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
+                } else {
+                    // Попробуем компактный формат без разделителей
+                    const compactMatch = cleaned.match(compactPattern);
+                    if (compactMatch) {
+                        const letters = (compactMatch[1] || '').toUpperCase();
+                        const digits = compactMatch[2];
 
-        .inspection-tier-label.picking {
-            color: var(--danger-color);
-        }
+                        // Аллея — берем последнюю букву из буквеного префикса, либо используем alleyFromData
+                        if (letters.length > 0) {
+                            alley = letters.slice(-1) + '01'; // если нет номера, подставим 01 (будем корректировать ниже)
+                        } else if (alleyFromData) {
+                            const alleyMatch = String(alleyFromData).match(/([A-Z])(\d{1,2})/i);
+                            if (alleyMatch) {
+                                alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
+                            }
+                        }
 
-        .inspection-tier-label.upper {
-            color: var(--secondary-color);
-        }
+                        // Разбиваем цифры: берем последние 3 как глубину (depth), предыдущие 3 как tier, остальное — section
+                        if (digits.length >= 6) {
+                            const depth = digits.slice(-3);
+                            const t = digits.slice(-6, -3);
+                            const s = digits.slice(0, digits.length - 6);
 
-        /* Индикаторы свайпа */
-        .swipe-indicators {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            z-index: 10;
-        }
+                            section = (s || '').padStart(2, '0').slice(-2);
+                            tier = (t || '0').padStart(2, '0').slice(-2);
 
-        .swipe-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: rgba(0, 0, 0, 0.1);
-            transition: var(--transition);
-        }
+                            const depthNum = parseInt(depth, 10);
+                            position = (!isNaN(depthNum) && depthNum <= 49) ? 'A' : (!isNaN(depthNum) && depthNum <= 50) ? 'B' : 'C';
+                        }
+                    } else {
+                        // Фоллбэк: пытаемся извлечь данные из строки с разделителями/числами
+                        if (alleyFromData) {
+                            const alleyMatch = alleyFromData.match(/([A-Z])(\d{1,2})/i);
+                            if (alleyMatch) {
+                                alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
+                            }
+                        }
 
-        .swipe-indicator.active {
-            background-color: var(--secondary-color);
-            transform: scale(1.3);
-        }
+                        const numbers = raw.match(/\d+/g);
+                        if (numbers && numbers.length >= 3) {
+                            section = numbers[0].padStart(2, '0').slice(-2);
+                            tier = numbers[1].padStart(2, '0').slice(-2);
+                            const depthNum = parseInt(numbers[2], 10);
+                            position = depthNum === 49 ? 'A' : depthNum === 50 ? 'B' : 'C';
+                        }
+                    }
+                }
 
-        .swipe-hint {
-            position: absolute;
-            bottom: 50px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: var(--secondary-color);
-            font-size: 0.8rem;
-            font-weight: 600;
-            opacity: 0;
-            animation: fadeInOut 3s ease-in-out 1s 3;
-        }
+                // Если alley ещё задан в виде буквы+числа, нормализуем
+                if (alley && /^[A-Z]\d?$/.test(alley)) {
+                    // Если alley выглядит как 'A' или 'A5', нормализуем к 'A05' или 'A05'
+                    const m = alley.match(/^([A-Z])(\d{1,2})?$/i);
+                    if (m) {
+                        const letter = m[1].toUpperCase();
+                        const num = (m[2] || '1').padStart(2, '0');
+                        alley = `${letter}${num}`;
+                    }
+                }
 
-        .swipe-hint.hidden {
-            display: none;
-        }
+                // Валидация данных
+                if (!alley || !alley.match(/^A\d{2}$/)) return null;
+                if (!section || !section.match(/^\d{2}$/)) return null;
+                if (!tier || !tier.match(/^\d{2}$/)) return null;
+                if (!['A', 'B', 'C'].includes(position)) return null;
 
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0; }
+                return { alley, section, tier, position };
             50% { opacity: 0.7; }
         }
 
@@ -956,7 +1004,10 @@
         <!-- Панель управления -->
         <div class="control-panel">
             <div class="control-header">
-                <h1 class="app-title">📦 Проверка складских ячеек</h1>
+                <div>
+                    <h1 class="app-title">📦 Проверка складских ячеек</h1>
+                    <div class="app-version" id="app-version">v2.0.2 • build 20260208-1 • 08.02.2026</div>
+                </div>
                 <div class="operator-info">
                     <input type="text" id="operator-name" class="operator-name" placeholder="Имя оператора" maxlength="50">
                 </div>
@@ -997,6 +1048,12 @@
                 <button class="control-btn export-btn" id="export-btn">
                     💾 Экспорт CSV
                 </button>
+                <button class="control-btn" id="topology-btn" style="background-color: #9b59b6; color: white;">
+                    📊 Топология
+                </button>
+                <button class="control-btn" id="reset-all-btn" style="background-color: #e74c3c; color: white;">
+                    🔄 Сброс
+                </button>
             </div>
         </div>
 
@@ -1014,9 +1071,14 @@
         <!-- Заголовок проверки -->
         <div class="inspection-header">
             <div class="inspection-title" id="inspection-alley-title">Аллея A01 - Проверка</div>
-            <button class="exit-inspection-btn" id="exit-inspection-btn">
-                ← Завершить проверку
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <button class="exit-inspection-btn" id="toggle-inspection-controls" style="background-color: #f39c12; color: white;">
+                    ⬆ Свернуть
+                </button>
+                <button class="exit-inspection-btn" id="exit-inspection-btn">
+                    ← Завершить проверку
+                </button>
+            </div>
         </div>
 
         <!-- Карусель секций -->
@@ -1037,6 +1099,22 @@
 
             <!-- Подсказка для свайпа -->
             <div class="swipe-hint" id="swipe-hint">Свайпните влево или вправо для навигации</div>
+        </div>
+    </div>
+
+    <!-- РЕЖИМ ПОЛНОЭКРАННОЙ ТОПОЛОГИИ -->
+    <div id="topology-fullscreen-mode" style="display: none; height: 100vh; flex-direction: column; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999; background: white;">
+        <!-- Скрываемая панель управления топологией -->
+        <div id="topology-control-panel" style="background: white; padding: 10px 20px; border-bottom: 1px solid #e1e8ed; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #2c3e50; font-size: 1.1rem; margin: 0; flex: 1;">📍 Топология Склада</h2>
+            <button id="toggle-topology-controls" style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;" title="Свернуть панель">⬆ Свернуть</button>
+            <button id="exit-topology-btn" style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">✕ Закрыть</button>
+        </div>
+        <!-- Контейнер топологии со скроллом -->
+        <div id="topology-scrollable" style="flex: 1; overflow-y: auto; overflow-x: hidden; padding: 15px;">
+            <div id="topology-alleys-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Аллеи будут добавлены динамически -->
+            </div>
         </div>
     </div>
 
@@ -1112,6 +1190,12 @@
 
     <script>
         // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ==========
+        const APP_VERSION = {
+            version: '2.0.2',
+            build: '20260208-1',
+            date: '08.02.2026'
+        };
+
         let currentAlley = 'A01';
         let currentSectionIndex = 0;
         let warehousesData = {};
@@ -1136,6 +1220,7 @@
 
         // ========== ИНИЦИАЛИЗАЦИЯ ==========
         document.addEventListener('DOMContentLoaded', function() {
+            updateAppVersion();
             console.log('Инициализация системы...');
             initAlleysDropdown();
             generateWarehouseData();
@@ -1149,6 +1234,12 @@
         });
 
         // Инициализация выпадающего списка аллей
+        function updateAppVersion() {
+            const versionEl = document.getElementById('app-version');
+            if (!versionEl) return;
+            versionEl.textContent = `v${APP_VERSION.version} • build ${APP_VERSION.build} • ${APP_VERSION.date}`;
+        }
+
         function initAlleysDropdown() {
             const alleySelect = document.getElementById('alley-select');
             alleySelect.innerHTML = '';
@@ -1194,7 +1285,15 @@
                                 checkTime: null,
                                 comment: '',
                                 operator: '',
-                                discrepancy: false
+                                discrepancy: false,
+                                wmsArticles: [],
+                                wmsConflict: false,
+                                wmsDivision: '',
+                                wmsZone: '',
+                                wmsBarcode: '',
+                                wmsProductNames: [],
+                                wmsArticleDetails: [],
+                                wmsPlacementDate: ''
                             };
                             
                             warehousesData[alley][section].cells.push(cell);
@@ -1370,29 +1469,133 @@
             let cellNameIndex = -1;
             let statusIndex = -1;
             let alleyIndex = -1;
-            
-            // Ищем заголовки
+            let articleIndex = -1;
+            let productIndex = -1;
+            let divisionIndex = -1;
+            let zoneIndex = -1;
+            let barcodeIndex = -1;
+            let placementDateIndex = -1;
+
+            const normalizeHeader = (value) => String(value || '')
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            // Ищем оптимальную строку заголовка по количеству совпадений ключевых слов
+            const keywords = {
+                cellName: [
+                    '\u044f\u0447\u0435\u0439\u043a\u0430', // ячейка
+                    '\u044f\u0447\u0435\u0439\u043a\u0438', // ячейки
+                    '\u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435', // название
+                    '\u0430\u0434\u0440\u0435\u0441', // адрес
+                    'cell',
+                    'address'
+                ],
+                status: [
+                    '\u0441\u0442\u0430\u0442\u0443\u0441', // статус
+                    '\u0437\u0430\u043d\u044f\u0442', // занят
+                    '\u0441\u0432\u043e\u0431\u043e\u0434', // свобод
+                    'status',
+                    'occupied',
+                    'empty'
+                ],
+                alley: [
+                    '\u0430\u043b\u043b\u0435', // алле
+                    '\u0430\u043b\u043b\u0435\u044f', // аллея
+                    '\u043d\u043e\u043c\u0435\u0440 \u0430\u043b\u043b\u0435\u0438', // номер аллеи
+                    'alley',
+                    'aisle'
+                ],
+                article: [
+                    '\u0430\u0440\u0442\u0438\u043a\u0443\u043b', // артикул
+                    '\u043a\u043e\u0434 \u0442\u043e\u0432\u0430\u0440\u0430', // код товара
+                    'article',
+                    'sku'
+                ],
+                product: [
+                    '\u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0442\u043e\u0432\u0430\u0440\u0430', // название товара
+                    '\u043d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435', // наименование
+                    '\u0442\u043e\u0432\u0430\u0440', // товар
+                    'product',
+                    'item'
+                ],
+                division: ['\u0434\u0438\u0432\u0438\u0437\u0438\u043e\u043d', 'division'],
+                zone: ['\u0437\u043e\u043d\u0430', 'zone'],
+                barcode: [
+                    '\u0448\u043a', // шк
+                    '\u0448\u0442\u0440\u0438\u0445', // штрих
+                    '\u0448\u0442\u0440\u0438\u0445\u043a\u043e\u0434', // штрихкод
+                    'barcode',
+                    'bar code'
+                ],
+                placementDate: [
+                    '\u0434\u0430\u0442\u0430 \u0440\u0430\u0437\u043c\u0435\u0449', // дата размещ
+                    'placement date',
+                    'date placed'
+                ]
+            };
+
+            let bestMatchCount = 0;
             for (let i = 0; i < Math.min(5, xlsData.length); i++) {
                 const row = xlsData[i];
-                if (Array.isArray(row)) {
-                    for (let j = 0; j < row.length; j++) {
-                        const cellValue = String(row[j] || '').toLowerCase();
-                        
-                        if (cellValue.includes('название') && cellValue.includes('ячейки')) {
-                            cellNameIndex = j;
-                        }
-                        if (cellValue.includes('статус')) {
-                            statusIndex = j;
-                        }
-                        if (cellValue.includes('алле') || cellValue.includes('номер аллеи')) {
-                            alleyIndex = j;
-                        }
-                    }
+                if (!Array.isArray(row)) continue;
+
+                let matchCount = 0;
+                let tmpCellName = -1, tmpStatus = -1, tmpAlley = -1, tmpArticle = -1, tmpProduct = -1;
+                let tmpDivision = -1, tmpZone = -1, tmpBarcode = -1, tmpPlacementDate = -1;
+
+                for (let j = 0; j < row.length; j++) {
+                    const cellValue = normalizeHeader(row[j]);
                     
-                    // Если нашли все необходимые колонки
-                    if (cellNameIndex !== -1 && statusIndex !== -1) {
-                        headerRow = i;
-                        break;
+                    if (keywords.cellName.some(k => cellValue.includes(k))) { tmpCellName = j; matchCount++; }
+                    if (keywords.status.some(k => cellValue.includes(k))) { tmpStatus = j; matchCount++; }
+                    if (keywords.alley.some(k => cellValue.includes(k))) { tmpAlley = j; matchCount++; }
+                    if (keywords.article.some(k => cellValue.includes(k))) { tmpArticle = j; matchCount++; }
+                    if (keywords.product.some(k => cellValue.includes(k))) { tmpProduct = j; matchCount++; }
+                    if (keywords.division.some(k => cellValue.includes(k))) { tmpDivision = j; matchCount++; }
+                    if (keywords.zone.some(k => cellValue.includes(k))) { tmpZone = j; matchCount++; }
+                    if (keywords.barcode.some(k => cellValue.includes(k))) { tmpBarcode = j; matchCount++; }
+                    if (keywords.placementDate.some(k => cellValue.includes(k))) { tmpPlacementDate = j; matchCount++; }
+                }
+
+                if (matchCount > bestMatchCount) {
+                    bestMatchCount = matchCount;
+                    headerRow = i;
+                    cellNameIndex = tmpCellName;
+                    statusIndex = tmpStatus;
+                    alleyIndex = tmpAlley;
+                    articleIndex = tmpArticle;
+                    productIndex = tmpProduct;
+                    divisionIndex = tmpDivision;
+                    zoneIndex = tmpZone;
+                    barcodeIndex = tmpBarcode;
+                    placementDateIndex = tmpPlacementDate;
+                }
+            }
+
+            // Если нашли достаточно колонок, используем этот результат
+            if (cellNameIndex === -1 || statusIndex === -1) {
+                // Если не нашли оптимального заголовка, пробуем все первые 5 строк по очереди
+                for (let i = 0; i < Math.min(5, xlsData.length); i++) {
+                    const row = xlsData[i];
+                    if (Array.isArray(row)) {
+                        for (let j = 0; j < row.length; j++) {
+                            const cellValue = normalizeHeader(row[j]);
+                            if (keywords.cellName.some(k => cellValue.includes(k))) cellNameIndex = j;
+                            if (keywords.status.some(k => cellValue.includes(k))) statusIndex = j;
+                            if (keywords.alley.some(k => cellValue.includes(k))) alleyIndex = j;
+                            if (keywords.article.some(k => cellValue.includes(k))) articleIndex = j;
+                            if (keywords.product.some(k => cellValue.includes(k))) productIndex = j;
+                            if (keywords.division.some(k => cellValue.includes(k))) divisionIndex = j;
+                            if (keywords.zone.some(k => cellValue.includes(k))) zoneIndex = j;
+                            if (keywords.barcode.some(k => cellValue.includes(k))) barcodeIndex = j;
+                            if (keywords.placementDate.some(k => cellValue.includes(k))) placementDateIndex = j;
+                        }
+
+                        if (cellNameIndex !== -1 && statusIndex !== -1) {
+                            headerRow = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -1401,7 +1604,7 @@
                 throw new Error('Не найдены необходимые колонки в файле. Требуются колонки: "Название Ячейки" и "Статус"');
             }
             
-            console.log('Найдены колонки:', { cellNameIndex, statusIndex, alleyIndex, headerRow });
+            console.log('Найдены колонки:', { cellNameIndex, statusIndex, alleyIndex, articleIndex, productIndex, divisionIndex, zoneIndex, barcodeIndex, placementDateIndex, headerRow });
             
             // Обрабатываем строки данных
             for (let i = (headerRow || 0) + 1; i < xlsData.length; i++) {
@@ -1414,14 +1617,23 @@
                     const cellName = String(row[cellNameIndex] || '').trim();
                     const status = String(row[statusIndex] || '').trim();
                     const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
-                    
+                    const article = articleIndex !== -1 ? String(row[articleIndex] || '').trim() : '';
+                    const productName = productIndex !== -1 ? String(row[productIndex] || '').trim() : '';
+                    const division = divisionIndex !== -1 ? String(row[divisionIndex] || '').trim() : '';
+                    const zone = zoneIndex !== -1 ? String(row[zoneIndex] || '').trim() : '';
+                    const barcode = barcodeIndex !== -1 ? String(row[barcodeIndex] || '').trim() : '';
+                    const placementDate = placementDateIndex !== -1 ? String(row[placementDateIndex] || '').trim() : '';
+
                     if (!cellName || !status) {
                         errors.push(`Строка ${i+1}: пропущены обязательные данные`);
                         continue;
                     }
                     
                     // Преобразуем название ячейки в формат системы
-                    const parsedCell = parseCellName(cellName, alley);
+                    let parsedCell = parseCellName(cellName, alley);
+                    if (!parsedCell && barcode) {
+                        parsedCell = parseCellName(barcode, alley);
+                    }
                     
                     if (!parsedCell) {
                         errors.push(`Строка ${i+1}: неверный формат названия ячейки: ${cellName}`);
@@ -1429,21 +1641,48 @@
                     }
                     
                     const cellId = `${parsedCell.alley}-${parsedCell.section}-${parsedCell.tier}-${parsedCell.position}`;
-                    
+
                     // Преобразуем статус
                     const systemStatus = convertStatus(status);
-                    
-                    processedData[cellId] = {
-                        cellId: cellId,
-                        originalName: cellName,
-                        systemStatus: systemStatus,
-                        parsedData: parsedCell,
-                        rawData: {
-                            status: status,
-                            alley: alley
+
+                    // Агрегируем данные по адресу — возможно несколько строк относятся к одной ячейке
+                    if (!processedData[cellId]) {
+                        processedData[cellId] = {
+                            cellId: cellId,
+                            originalNames: [cellName],
+                            systemStatus: systemStatus,
+                            parsedData: parsedCell,
+                            rawRows: [{ status: status, alley: alley, article: article, productName: productName, division: division, zone: zone, barcode: barcode, placementDate: placementDate }],
+                            articles: [],
+                            articleDetails: [],
+                            productNames: [],
+                            division: division,
+                            zone: zone,
+                            barcode: barcode,
+                            placementDate: placementDate
+                        };
+                        if (article) processedData[cellId].articles.push(article);
+                        if (article && productName) processedData[cellId].articleDetails.push({ code: article, name: productName });
+                        if (productName) processedData[cellId].productNames.push(productName);
+                    } else {
+                        processedData[cellId].originalNames.push(cellName);
+                        processedData[cellId].rawRows.push({ status: status, alley: alley, article: article, productName: productName, division: division, zone: zone, barcode: barcode, placementDate: placementDate });
+                        if (article && !processedData[cellId].articles.includes(article)) {
+                            processedData[cellId].articles.push(article);
                         }
-                    };
-                    
+                        if (article && productName) {
+                            const exists = processedData[cellId].articleDetails.some(d => d.code === article && d.name === productName);
+                            if (!exists) processedData[cellId].articleDetails.push({ code: article, name: productName });
+                        }
+                        if (productName && !processedData[cellId].productNames.includes(productName)) {
+                            processedData[cellId].productNames.push(productName);
+                        }
+                        if (!processedData[cellId].division && division) processedData[cellId].division = division;
+                        if (!processedData[cellId].zone && zone) processedData[cellId].zone = zone;
+                        if (!processedData[cellId].barcode && barcode) processedData[cellId].barcode = barcode;
+                        if (!processedData[cellId].placementDate && placementDate) processedData[cellId].placementDate = placementDate;
+                    }
+
                     validRows++;
                     
                 } catch (error) {
@@ -1451,6 +1690,12 @@
                 }
             }
             
+            // Пометить конфликты — если для одного адреса более одного уникального артикула
+            for (const id in processedData) {
+                const entry = processedData[id];
+                entry.conflict = Array.isArray(entry.articles) && entry.articles.length > 1;
+            }
+
             console.log(`Обработано строк: ${validRows}/${totalRows}, ошибок: ${errors.length}`);
             
             return {
@@ -1466,109 +1711,175 @@
 
         // Парсинг названия ячейки
         function parseCellName(cellName, alleyFromData) {
-            // Пример формата: "OS A5-15-11-C"
-            // Или: "OS A 005 011 045"
-            
-            const cleanedName = cellName.replace(/\s+/g, ' ').trim();
-            
-            // Паттерн 1: OS A5-15-11-C
-            const pattern1 = /OS\s+([A-Z])(\d{1,2})-(\d{1,2})-(\d{1,2})-([A-C])/i;
-            // Паттерн 2: OS A 005 011 045
-            const pattern2 = /OS\s+([A-Z])\s+(\d{3})\s+(\d{3})\s+(\d{3})/i;
-            
+            if (!cellName) return null;
+
+            const raw = String(cellName).trim();
+            if (!raw) return null;
+
+            const cleanedWithSpaces = raw.replace(/\s+/g, ' ').trim();
+            const cleaned = raw.replace(/\s+/g, '').toUpperCase();
+
+            const pattern1 = /OS\s*([A-Z])(\d{1,2})-(\d{1,2})-(\d{1,2})-([A-C])/i;
+            const pattern2 = /OS\s*([A-Z]{1,2})\s+(\d{3})\s+(\d{3})\s+(\d{3})/i;
+            const compactPattern = /OS([A-Z]{1,3})(\d{6,})/i;
+
             let alley = '';
             let section = '';
             let tier = '';
             let position = '';
-            
-            const match1 = cleanedName.match(pattern1);
-            const match2 = cleanedName.match(pattern2);
-            
+
+            const match1 = cleanedWithSpaces.match(pattern1);
+            const match2 = cleanedWithSpaces.match(pattern2);
+
             if (match1) {
-                alley = match1[1].toUpperCase() + match1[2].padStart(2, '0'); // A5 → A05
-                section = match1[3].padStart(2, '0'); // 15 → 15
-                tier = match1[4].padStart(2, '0'); // 11 → 11
-                position = match1[5].toUpperCase(); // C → C
+                alley = match1[1].toUpperCase() + match1[2].padStart(2, '0');
+                section = match1[3].padStart(2, '0');
+                tier = match1[4].padStart(2, '0');
+                position = match1[5].toUpperCase();
             } else if (match2) {
-                alley = match2[1].toUpperCase() + match2[2].padStart(2, '0').slice(-2); // 005 → 05
-                section = match2[3].padStart(2, '0'); // 011 → 11
-                tier = match2[4].padStart(2, '0'); // 045 → 45
-                // Для формата с глубиной определяем позицию по глубине
-                const depth = parseInt(match2[4]);
-                position = depth <= 49 ? 'A' : depth <= 50 ? 'B' : 'C';
+                const letters = match2[1].toUpperCase();
+                const alleyLetter = letters.slice(-1);
+                const g1 = match2[2];
+                const g2 = match2[3];
+                const g3 = match2[4];
+
+                alley = alleyLetter + g1.slice(-2);
+                section = g2.slice(-2);
+
+                const depth = parseInt(g3, 10);
+                const mapped = mapDepthToTierPosition(depth);
+                tier = mapped.tier;
+                position = mapped.position;
             } else {
-                // Если не удалось распарсить по шаблонам, используем аллею из данных
-                if (alleyFromData) {
-                    const alleyMatch = alleyFromData.match(/([A-Z])(\d{1,2})/i);
+                const compactMatch = cleaned.match(compactPattern);
+                if (compactMatch) {
+                    const letters = compactMatch[1].toUpperCase();
+                    const digits = compactMatch[2];
+                    const alleyLetter = letters.slice(-1);
+
+                    if (digits.length >= 9) {
+                        const g1 = digits.slice(0, 3);
+                        const g2 = digits.slice(3, 6);
+                        const g3 = digits.slice(6, 9);
+
+                        alley = alleyLetter + g1.slice(-2);
+                        section = g2.slice(-2);
+
+                        const depth = parseInt(g3, 10);
+                        const mapped = mapDepthToTierPosition(depth);
+                        tier = mapped.tier;
+                        position = mapped.position;
+                    } else if (digits.length >= 6) {
+                        const depth = digits.slice(-3);
+                        const t = digits.slice(-6, -3);
+                        const s = digits.slice(0, digits.length - 6);
+
+                        section = (s || '').padStart(2, '0').slice(-2);
+                        tier = (t || '0').padStart(2, '0').slice(-2);
+                        const depthNum = parseInt(depth, 10);
+                        position = depthNum <= 49 ? 'A' : depthNum <= 50 ? 'B' : 'C';
+
+                        if (letters.length > 0) {
+                            alley = alleyLetter + '01';
+                        }
+                    }
+                } else if (alleyFromData) {
+                    const alleyMatch = String(alleyFromData).match(/([A-Z])(\d{1,2})/i);
                     if (alleyMatch) {
                         alley = alleyMatch[1].toUpperCase() + alleyMatch[2].padStart(2, '0');
-                        
-                        // Пытаемся извлечить данные из названия другими способами
-                        const numbers = cellName.match(/\d+/g);
+
+                        const numbers = raw.match(/\d+/g);
                         if (numbers && numbers.length >= 3) {
                             section = numbers[0].padStart(2, '0').slice(-2);
                             tier = numbers[1].padStart(2, '0').slice(-2);
-                            position = numbers[2] === '49' ? 'A' : numbers[2] === '50' ? 'B' : 'C';
+                            const depthNum = parseInt(numbers[2], 10);
+                            position = depthNum <= 49 ? 'A' : depthNum <= 50 ? 'B' : 'C';
                         }
                     }
                 }
-                
-                if (!alley) {
-                    return null;
-                }
             }
-            
-            // Валидация данных
-            if (!alley.match(/^A\d{2}$/) || 
-                !section.match(/^\d{2}$/) || 
-                !tier.match(/^\d{2}$/) || 
+
+            if (!alley || !section || !tier || !position) {
+                return null;
+            }
+
+            if (!alley.match(/^A\d{2}$/) ||
+                !section.match(/^\d{2}$/) ||
+                !tier.match(/^\d{2}$/) ||
                 !['A', 'B', 'C'].includes(position)) {
                 return null;
             }
-            
-            return {
-                alley: alley,
-                section: section,
-                tier: tier,
-                position: position
-            };
+
+            return { alley, section, tier, position };
         }
 
-        // Преобразование статуса
-        function convertStatus(status) {
-            const statusLower = status.toLowerCase();
-            
-            if (statusLower.includes('свобод') || statusLower.includes('пуст') || statusLower === 'empty') {
-                return 'empty';
-            } else if (statusLower.includes('занят') || statusLower.includes('заполн') || statusLower === 'occupied') {
-                return 'occupied';
-            } else {
-                return 'unknown';
+        function mapDepthToTierPosition(depth) {
+            if (!depth || Number.isNaN(depth)) {
+                return { tier: '', position: '' };
             }
+
+            const posIndex = (depth - 1) % 3;
+            const position = ['A', 'B', 'C'][posIndex];
+
+            let tier = '';
+            if (depth <= 7) tier = '01';
+            else if (depth <= 15) tier = '02';
+            else if (depth <= 23) tier = '03';
+            else if (depth <= 31) tier = '10';
+            else if (depth <= 39) tier = '11';
+            else if (depth <= 47) tier = '12';
+            else if (depth <= 55) tier = '13';
+            else if (depth <= 62) tier = '14';
+            else tier = '15';
+
+            return { tier, position };
         }
 
-        // Применение данных WMS к warehousesData
+        function convertStatus(status) {
+            const statusLower = String(status || '').toLowerCase();
+            const has = (s) => statusLower.includes(s);
+
+            if (has('\u0441\u0432\u043e\u0431\u043e\u0434') || has('\u043f\u0443\u0441\u0442') || has('empty')) {
+                return 'empty';
+            }
+            if (has('\u0437\u0430\u043d\u044f\u0442') || has('\u0437\u0430\u043f\u043e\u043b\u043d') || has('occupied')) {
+                return 'occupied';
+            }
+            return 'unknown';
+        }
+
         function applyWMSDataToWarehouse() {
             console.log('Применение данных WMS...');
-            
+
             let updatedCells = 0;
             let notFoundCells = 0;
-            
+            let conflictCount = 0;
+
             for (const cellId in wmsData.cellsData) {
                 const wmsCell = wmsData.cellsData[cellId];
                 const parts = cellId.split('-');
-                
+
                 if (parts.length !== 4) continue;
-                
+
                 const [alley, section, tier, position] = parts;
-                
+
                 if (warehousesData[alley] && warehousesData[alley][section]) {
                     const cell = warehousesData[alley][section].cells.find(
                         c => c.tier === tier && c.position === position
                     );
-                    
+
                     if (cell) {
                         cell.systemStatus = wmsCell.systemStatus;
+                        // Сохраняем артикулы и флаг конфликта для UI
+                        cell.wmsArticles = Array.isArray(wmsCell.articles) ? wmsCell.articles.slice() : [];
+                        cell.wmsArticleDetails = Array.isArray(wmsCell.articleDetails) ? wmsCell.articleDetails.slice() : [];
+                        cell.wmsProductNames = Array.isArray(wmsCell.productNames) ? wmsCell.productNames.slice() : [];
+                        cell.wmsDivision = wmsCell.division || '';
+                        cell.wmsZone = wmsCell.zone || '';
+                        cell.wmsBarcode = wmsCell.barcode || '';
+                        cell.wmsPlacementDate = wmsCell.placementDate || '';
+                        cell.wmsConflict = !!wmsCell.conflict;
+                        if (cell.wmsConflict) conflictCount++;
                         updatedCells++;
                     } else {
                         notFoundCells++;
@@ -1577,9 +1888,9 @@
                     notFoundCells++;
                 }
             }
-            
-            console.log(`Обновлено ячеек: ${updatedCells}, не найдено: ${notFoundCells}`);
-            return { updatedCells, notFoundCells };
+
+            console.log(`Обновлено ячеек: ${updatedCells}, не найдено: ${notFoundCells}, конфликтов: ${conflictCount}`);
+            return { updatedCells, notFoundCells, conflictCount };
         }
 
         // Основная функция импорта
@@ -1656,6 +1967,16 @@
                 updatedItem.className = 'import-status-item';
                 updatedItem.innerHTML = `<span>Обновлено ячеек в системе:</span><span>${applyResult.updatedCells}</span>`;
                 statusList.appendChild(updatedItem);
+                
+                // Показываем количество конфликтов артикулов, если они есть
+                const conflictCount = applyResult.conflictCount || 0;
+                if (conflictCount > 0) {
+                    const conflictItem = document.createElement('li');
+                    conflictItem.className = 'import-status-item';
+                    conflictItem.style.color = '#e67e22';
+                    conflictItem.innerHTML = `<span>⚠ Ячеек с конфликтами артикулов:</span><span>${conflictCount}</span>`;
+                    statusList.appendChild(conflictItem);
+                }
                 
                 const dateItem = document.createElement('li');
                 dateItem.className = 'import-status-item';
@@ -2084,7 +2405,8 @@
             
             const cellAddress = document.createElement('div');
             cellAddress.className = 'inspection-cell-address';
-            cellAddress.textContent = cell.position;
+            // Показываем полный адрес ячейки без префикса OS (формат: A01-01-15-A)
+            cellAddress.textContent = cell.id;
             
             const cellPosition = document.createElement('div');
             cellPosition.className = 'inspection-cell-position';
@@ -2101,6 +2423,18 @@
             
             cellElement.appendChild(cellAddress);
             cellElement.appendChild(cellPosition);
+
+            // Бейдж конфликтов артикулов (если для одного адреса найдено несколько разных артикулов)
+            // Показывать только для занятых ячеек с конфликтами (несколько артикулов)
+            const articles = Array.isArray(cell.wmsArticles) ? cell.wmsArticles : [];
+            const hasConflict = cell.systemStatus === 'occupied' && articles && articles.length > 1;
+            if (hasConflict) {
+                const badge = document.createElement('div');
+                badge.className = 'conflict-badge';
+                badge.title = `Артикулы: ${articles.join(', ')}`;
+                badge.textContent = String(articles.length);
+                cellElement.appendChild(badge);
+            }
             
             // Обработчик клика/тапа
             cellElement.addEventListener('click', (e) => {
@@ -2171,6 +2505,58 @@
         function openModal(cell) {
             console.log('Открытие модального окна для:', cell.id);
             document.getElementById('modal-address').textContent = cell.id;
+            
+            // Добавляем информацию о статусе и артикулах
+            const modalContent = document.querySelector('.modal');
+            let infoDiv = modalContent.querySelector('.modal-cell-info');
+            
+            if (!infoDiv) {
+                infoDiv = document.createElement('div');
+                infoDiv.className = 'modal-cell-info';
+                infoDiv.style.cssText = 'background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem; border-left: 3px solid #3498db;';
+                const modalAddress = document.getElementById('modal-address');
+                modalAddress.parentNode.insertBefore(infoDiv, modalAddress.nextSibling);
+            }
+            
+            // Формируем информацию о ячейке
+            let info = '';
+            if (cell.systemStatus === 'occupied') {
+                info += `📦 Статус: Занята\n`;
+            } else if (cell.systemStatus === 'empty') {
+                info += `⬜ Статус: Свободна\n`;
+            }
+
+            if (cell.wmsDivision) {
+                info += `🏢 Дивизион: ${cell.wmsDivision}\n`;
+            }
+            if (cell.wmsZone) {
+                info += `🧭 Зона: ${cell.wmsZone}\n`;
+            }
+            if (cell.wmsBarcode) {
+                info += `🏷 ШК ячейки: ${cell.wmsBarcode}\n`;
+            }
+            if (cell.wmsPlacementDate) {
+                info += `📅 Дата размещения: ${cell.wmsPlacementDate}\n`;
+            }
+            
+            // Показываем все артикулы если они есть
+            const articles = Array.isArray(cell.wmsArticles) ? cell.wmsArticles : [];
+            const articleDetails = Array.isArray(cell.wmsArticleDetails) ? cell.wmsArticleDetails : [];
+            if (articleDetails.length > 0) {
+                info += `📋 Артикулы (${articleDetails.length}):\n`;
+                articleDetails.forEach((art, idx) => {
+                    const name = art.name ? ` — ${art.name}` : '';
+                    info += `   ${idx + 1}. ${art.code}${name}\n`;
+                });
+            } else if (articles.length > 0) {
+                info += `📋 Артикулы (${articles.length}):\n`;
+                articles.forEach((art, idx) => {
+                    info += `   ${idx + 1}. ${art}\n`;
+                });
+            }
+            
+            infoDiv.textContent = info.trim() || 'Информация отсутствует';
+            
             document.getElementById('modal-overlay').classList.add('show');
         }
 
@@ -2244,6 +2630,12 @@
                 updateSectionIndicators(currentSection);
             } else {
                 updateOverviewDisplay();
+            }
+            
+            // Обновляем топологию если она открыта
+            const topologyMode = document.getElementById('topology-fullscreen-mode');
+            if (topologyMode && topologyMode.style.display === 'flex') {
+                renderTopologyGrid();
             }
             
             // Показываем уведомление
@@ -2342,6 +2734,182 @@
             }, 3000);
         }
 
+        // ========== ПОЛНОЭКРАННАЯ ТОПОЛОГИЯ ==========
+        function openTopologyFullscreen() {
+            document.getElementById('overview-mode').style.display = 'none';
+            document.getElementById('inspection-mode').style.display = 'none';
+            document.getElementById('topology-fullscreen-mode').style.display = 'flex';
+            renderTopologyGrid();
+        }
+
+        function closeTopologyFullscreen() {
+            document.getElementById('topology-fullscreen-mode').style.display = 'none';
+            document.getElementById('overview-mode').style.display = 'flex';
+        }
+
+        function toggleTopologyControls() {
+            const panel = document.getElementById('topology-control-panel');
+            const btn = document.getElementById('toggle-topology-controls');
+            const isVisible = panel.style.height !== '0px';
+            
+            if (isVisible) {
+                panel.style.maxHeight = '0px';
+                panel.style.padding = '0px';
+                panel.style.overflow = 'hidden';
+                btn.textContent = '⬇ Развернуть';
+            } else {
+                panel.style.maxHeight = 'auto';
+                panel.style.padding = '10px 20px';
+                btn.textContent = '⬆ Свернуть';
+            }
+        }
+
+        function renderTopologyGrid() {
+            const grid = document.getElementById('topology-alleys-grid');
+            grid.innerHTML = '';
+            
+            for (let alleyNum = 1; alleyNum <= 14; alleyNum++) {
+                const alley = `A${alleyNum.toString().padStart(2, '0')}`;
+                
+                if (!warehousesData[alley]) continue;
+                
+                const alleyCard = document.createElement('div');
+                alleyCard.style.cssText = 'border: 2px solid #3498db; border-radius: 8px; padding: 12px; background: #f8fafc;';
+                
+                const alleyTitle = document.createElement('h3');
+                alleyTitle.textContent = `Аллея ${alley}`;
+                alleyTitle.style.cssText = 'color: #2c3e50; margin: 0 0 10px 0; font-size: 0.95rem;';
+                alleyCard.appendChild(alleyTitle);
+                
+                const sectionsContainer = document.createElement('div');
+                sectionsContainer.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-height: 400px; overflow-y: auto;';
+                
+                for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                    const section = sectionNum.toString().padStart(2, '0');
+                    const sectionData = warehousesData[alley][section];
+                    
+                    if (!sectionData) continue;
+                    
+                    const cells = sectionData.cells;
+                    const checkedCount = cells.filter(c => c.checked && c.actualStatus !== 'skipped').length;
+                    const discrepancyCount = cells.filter(c => c.actualStatus === 'discrepancy').length;
+                    const totalCount = cells.length;
+                    const progress = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+                    
+                    // Определяем цвет секции
+                    let bgColor = '#ecf0f1'; // серый - не проверена
+                    let textColor = '#7f8c8d';
+                    
+                    if (progress === 100) {
+                        bgColor = '#d5f4e6'; // зеленый - завершена
+                        textColor = '#27ae60';
+                    } else if (progress > 0) {
+                        bgColor = '#d6eaf8'; // голубой - в процессе
+                        textColor = '#3498db';
+                    }
+                    
+                    if (discrepancyCount > 0) {
+                        bgColor = '#fdebd0'; // оранжевый - есть проблемы
+                        textColor = '#e67e22';
+                    }
+                    
+                    const sectionCard = document.createElement('div');
+                    sectionCard.dataset.alley = alley;
+                    sectionCard.dataset.section = section;
+                    sectionCard.style.cssText = `
+                        background: ${bgColor};
+                        border: 1px solid #bdc3c7;
+                        border-radius: 4px;
+                        padding: 6px;
+                        text-align: center;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    `;
+                    sectionCard.onmouseover = () => sectionCard.style.transform = 'scale(1.05)';
+                    sectionCard.onmouseout = () => sectionCard.style.transform = 'scale(1)';
+                    
+                    const label = document.createElement('div');
+                    label.style.cssText = `color: ${textColor}; font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;`;
+                    label.textContent = `Сек. ${section}`;
+                    
+                    const progress_text = document.createElement('div');
+                    progress_text.style.cssText = `color: ${textColor}; font-size: 0.7rem;`;
+                    progress_text.textContent = `${progress}% (${checkedCount}/${totalCount})`;
+                    
+                    sectionCard.appendChild(label);
+                    sectionCard.appendChild(progress_text);
+                    
+                    // Клик открывает секцию для проверки
+                    sectionCard.addEventListener('click', () => {
+                        currentAlley = alley;
+                        currentSectionIndex = sectionNum - 1;
+                        closeTopologyFullscreen();
+                        startInspection();
+                    });
+                    
+                    sectionsContainer.appendChild(sectionCard);
+                }
+                
+                alleyCard.appendChild(sectionsContainer);
+                grid.appendChild(alleyCard);
+            }
+        }
+
+        function resetAllData() {
+            const confirmed = confirm('⚠️ Вы уверены? Это удалит ВСЕ данные:\n- Все результаты проверки\n- Загруженные XLS данные\n- История действий\n\nВернуть назад невозможно!');
+            
+            if (!confirmed) return;
+            
+            // Очищаем localStorage
+            localStorage.removeItem('warehouseInspectionData');
+            localStorage.removeItem('warehouseAuditLog');
+            localStorage.removeItem('warehouseWMSData');
+            
+            // Сбрасываем глобальные данные
+            warehousesData = {};
+            auditLog = [];
+            wmsData = { cellsData: new Map() };
+            
+            // Переинициализируем структуру склада
+            generateWarehouseData();
+            
+            // Возвращаемся в режим обзора
+            isInspecting = false;
+            document.getElementById('inspection-mode').style.display = 'none';
+            document.getElementById('overview-mode').style.display = 'flex';
+            document.getElementById('topology-fullscreen-mode').style.display = 'none';
+            
+            // Обновляем интерфейс
+            updateOverviewDisplay();
+            currentAlley = 'A01';
+            document.getElementById('alley-select').value = 'A01';
+            
+            showNotification('✅ Все данные успешно очищены!', 'success');
+        }
+
+        function toggleInspectionControls() {
+            const carousel = document.getElementById('carousel-container');
+            const header = document.querySelector('.inspection-header');
+            const btn = document.getElementById('toggle-inspection-controls');
+            const isVisible = carousel.style.maxHeight !== '0px' && carousel.style.maxHeight !== '';
+            
+            if (isVisible) {
+                carousel.style.maxHeight = '0px';
+                carousel.style.overflow = 'hidden';
+                carousel.style.padding = '0px';
+                header.style.borderBottom = 'none';
+                btn.textContent = '⬇ Развернуть';
+                btn.style.backgroundColor = '#27ae60';
+            } else {
+                carousel.style.maxHeight = '100vh';
+                carousel.style.overflow = 'visible';
+                carousel.style.padding = '20px';
+                header.style.borderBottom = '2px solid #e74c3c';
+                btn.textContent = '⬆ Свернуть';
+                btn.style.backgroundColor = '#f39c12';
+            }
+        }
+
         // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
         function setupEventListeners() {
             // Выбор аллеи в режиме обзора
@@ -2360,6 +2928,21 @@
             
             // Кнопка экспорта CSV
             document.getElementById('export-btn').addEventListener('click', exportToCSV);
+            
+            // Кнопка открытия топологии
+            document.getElementById('topology-btn').addEventListener('click', openTopologyFullscreen);
+            
+            // Кнопка закрытия топологии
+            document.getElementById('exit-topology-btn').addEventListener('click', closeTopologyFullscreen);
+            
+            // Кнопка свернуть/развернуть панель в топологии
+            document.getElementById('toggle-topology-controls').addEventListener('click', toggleTopologyControls);
+            
+            // Кнопка сброса всех данных
+            document.getElementById('reset-all-btn').addEventListener('click', resetAllData);
+            
+            // Кнопка свертывания панели в режиме проверки
+            document.getElementById('toggle-inspection-controls').addEventListener('click', toggleInspectionControls);
             
             // Кнопка завершения проверки
             document.getElementById('exit-inspection-btn').addEventListener('click', exitInspection);
