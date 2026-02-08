@@ -1006,7 +1006,7 @@
             <div class="control-header">
                 <div>
                     <h1 class="app-title">📦 Проверка складских ячеек</h1>
-                    <div class="app-version">v2.0 • build e0f8b74 • 08.02.2026</div>
+                    <div class="app-version" id="app-version">v2.0.2 • build 20260208-1 • 08.02.2026</div>
                 </div>
                 <div class="operator-info">
                     <input type="text" id="operator-name" class="operator-name" placeholder="Имя оператора" maxlength="50">
@@ -1190,6 +1190,12 @@
 
     <script>
         // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ==========
+        const APP_VERSION = {
+            version: '2.0.2',
+            build: '20260208-1',
+            date: '08.02.2026'
+        };
+
         let currentAlley = 'A01';
         let currentSectionIndex = 0;
         let warehousesData = {};
@@ -1214,6 +1220,7 @@
 
         // ========== ИНИЦИАЛИЗАЦИЯ ==========
         document.addEventListener('DOMContentLoaded', function() {
+            updateAppVersion();
             console.log('Инициализация системы...');
             initAlleysDropdown();
             generateWarehouseData();
@@ -1227,6 +1234,12 @@
         });
 
         // Инициализация выпадающего списка аллей
+        function updateAppVersion() {
+            const versionEl = document.getElementById('app-version');
+            if (!versionEl) return;
+            versionEl.textContent = `v${APP_VERSION.version} • build ${APP_VERSION.build} • ${APP_VERSION.date}`;
+        }
+
         function initAlleysDropdown() {
             const alleySelect = document.getElementById('alley-select');
             alleySelect.innerHTML = '';
@@ -1274,7 +1287,13 @@
                                 operator: '',
                                 discrepancy: false,
                                 wmsArticles: [],
-                                wmsConflict: false
+                                wmsConflict: false,
+                                wmsDivision: '',
+                                wmsZone: '',
+                                wmsBarcode: '',
+                                wmsProductNames: [],
+                                wmsArticleDetails: [],
+                                wmsPlacementDate: ''
                             };
                             
                             warehousesData[alley][section].cells.push(cell);
@@ -1452,6 +1471,10 @@
             let alleyIndex = -1;
             let articleIndex = -1;
             let productIndex = -1;
+            let divisionIndex = -1;
+            let zoneIndex = -1;
+            let barcodeIndex = -1;
+            let placementDateIndex = -1;
             
             // Ищем оптимальную строку заголовка по количеству совпадений ключевых слов
             const keywords = {
@@ -1459,7 +1482,11 @@
                 status: ['статус', 'status', 'занято', 'свободно'],
                 alley: ['алле', 'номер аллеи', 'alley', 'aisle'],
                 article: ['артикул', 'article', 'sku', 'код товара'],
-                product: ['название товара', 'product', 'item', 'товар', 'наименование']
+                product: ['название товара', 'product', 'item', 'товар', 'наименование'],
+                division: ['дивизион', 'division'],
+                zone: ['зона', 'zone'],
+                barcode: ['шк', 'штрих', 'barcode', 'bar code', 'штрихкод'],
+                placementDate: ['дата размещ', 'placement date', 'date placed']
             };
 
             let bestMatchCount = 0;
@@ -1469,6 +1496,7 @@
 
                 let matchCount = 0;
                 let tmpCellName = -1, tmpStatus = -1, tmpAlley = -1, tmpArticle = -1, tmpProduct = -1;
+                let tmpDivision = -1, tmpZone = -1, tmpBarcode = -1, tmpPlacementDate = -1;
 
                 for (let j = 0; j < row.length; j++) {
                     const cellValue = String(row[j] || '').toLowerCase().trim();
@@ -1478,6 +1506,10 @@
                     if (keywords.alley.some(k => cellValue.includes(k))) { tmpAlley = j; matchCount++; }
                     if (keywords.article.some(k => cellValue.includes(k))) { tmpArticle = j; matchCount++; }
                     if (keywords.product.some(k => cellValue.includes(k))) { tmpProduct = j; matchCount++; }
+                    if (keywords.division.some(k => cellValue.includes(k))) { tmpDivision = j; matchCount++; }
+                    if (keywords.zone.some(k => cellValue.includes(k))) { tmpZone = j; matchCount++; }
+                    if (keywords.barcode.some(k => cellValue.includes(k))) { tmpBarcode = j; matchCount++; }
+                    if (keywords.placementDate.some(k => cellValue.includes(k))) { tmpPlacementDate = j; matchCount++; }
                 }
 
                 if (matchCount > bestMatchCount) {
@@ -1488,6 +1520,10 @@
                     alleyIndex = tmpAlley;
                     articleIndex = tmpArticle;
                     productIndex = tmpProduct;
+                    divisionIndex = tmpDivision;
+                    zoneIndex = tmpZone;
+                    barcodeIndex = tmpBarcode;
+                    placementDateIndex = tmpPlacementDate;
                 }
             }
 
@@ -1511,6 +1547,18 @@
                             if (cellValue.includes('артикул') || cellValue.includes('article')) {
                                 articleIndex = j;
                             }
+                            if (cellValue.includes('дивизион')) {
+                                divisionIndex = j;
+                            }
+                            if (cellValue.includes('зона')) {
+                                zoneIndex = j;
+                            }
+                            if (cellValue.includes('шк') || cellValue.includes('штрих') || cellValue.includes('barcode')) {
+                                barcodeIndex = j;
+                            }
+                            if (cellValue.includes('дата размещ')) {
+                                placementDateIndex = j;
+                            }
                         }
 
                         if (cellNameIndex !== -1 && statusIndex !== -1) {
@@ -1525,7 +1573,7 @@
                 throw new Error('Не найдены необходимые колонки в файле. Требуются колонки: "Название Ячейки" и "Статус"');
             }
             
-            console.log('Найдены колонки:', { cellNameIndex, statusIndex, alleyIndex, headerRow });
+            console.log('Найдены колонки:', { cellNameIndex, statusIndex, alleyIndex, articleIndex, productIndex, divisionIndex, zoneIndex, barcodeIndex, placementDateIndex, headerRow });
             
             // Обрабатываем строки данных
             for (let i = (headerRow || 0) + 1; i < xlsData.length; i++) {
@@ -1539,6 +1587,11 @@
                     const status = String(row[statusIndex] || '').trim();
                     const alley = alleyIndex !== -1 ? String(row[alleyIndex] || '').trim() : '';
                     const article = articleIndex !== -1 ? String(row[articleIndex] || '').trim() : '';
+                    const productName = productIndex !== -1 ? String(row[productIndex] || '').trim() : '';
+                    const division = divisionIndex !== -1 ? String(row[divisionIndex] || '').trim() : '';
+                    const zone = zoneIndex !== -1 ? String(row[zoneIndex] || '').trim() : '';
+                    const barcode = barcodeIndex !== -1 ? String(row[barcodeIndex] || '').trim() : '';
+                    const placementDate = placementDateIndex !== -1 ? String(row[placementDateIndex] || '').trim() : '';
 
                     if (!cellName || !status) {
                         errors.push(`Строка ${i+1}: пропущены обязательные данные`);
@@ -1565,16 +1618,35 @@
                             originalNames: [cellName],
                             systemStatus: systemStatus,
                             parsedData: parsedCell,
-                            rawRows: [{ status: status, alley: alley, article: article }],
-                            articles: []
+                            rawRows: [{ status: status, alley: alley, article: article, productName: productName, division: division, zone: zone, barcode: barcode, placementDate: placementDate }],
+                            articles: [],
+                            articleDetails: [],
+                            productNames: [],
+                            division: division,
+                            zone: zone,
+                            barcode: barcode,
+                            placementDate: placementDate
                         };
                         if (article) processedData[cellId].articles.push(article);
+                        if (article && productName) processedData[cellId].articleDetails.push({ code: article, name: productName });
+                        if (productName) processedData[cellId].productNames.push(productName);
                     } else {
                         processedData[cellId].originalNames.push(cellName);
-                        processedData[cellId].rawRows.push({ status: status, alley: alley, article: article });
+                        processedData[cellId].rawRows.push({ status: status, alley: alley, article: article, productName: productName, division: division, zone: zone, barcode: barcode, placementDate: placementDate });
                         if (article && !processedData[cellId].articles.includes(article)) {
                             processedData[cellId].articles.push(article);
                         }
+                        if (article && productName) {
+                            const exists = processedData[cellId].articleDetails.some(d => d.code === article && d.name === productName);
+                            if (!exists) processedData[cellId].articleDetails.push({ code: article, name: productName });
+                        }
+                        if (productName && !processedData[cellId].productNames.includes(productName)) {
+                            processedData[cellId].productNames.push(productName);
+                        }
+                        if (!processedData[cellId].division && division) processedData[cellId].division = division;
+                        if (!processedData[cellId].zone && zone) processedData[cellId].zone = zone;
+                        if (!processedData[cellId].barcode && barcode) processedData[cellId].barcode = barcode;
+                        if (!processedData[cellId].placementDate && placementDate) processedData[cellId].placementDate = placementDate;
                     }
 
                     validRows++;
@@ -1711,6 +1783,12 @@
                         cell.systemStatus = wmsCell.systemStatus;
                         // Сохраняем артикулы и флаг конфликта для UI
                         cell.wmsArticles = Array.isArray(wmsCell.articles) ? wmsCell.articles.slice() : [];
+                        cell.wmsArticleDetails = Array.isArray(wmsCell.articleDetails) ? wmsCell.articleDetails.slice() : [];
+                        cell.wmsProductNames = Array.isArray(wmsCell.productNames) ? wmsCell.productNames.slice() : [];
+                        cell.wmsDivision = wmsCell.division || '';
+                        cell.wmsZone = wmsCell.zone || '';
+                        cell.wmsBarcode = wmsCell.barcode || '';
+                        cell.wmsPlacementDate = wmsCell.placementDate || '';
                         cell.wmsConflict = !!wmsCell.conflict;
                         if (cell.wmsConflict) conflictCount++;
                         updatedCells++;
@@ -2358,10 +2436,30 @@
             } else if (cell.systemStatus === 'empty') {
                 info += `⬜ Статус: Свободна\n`;
             }
+
+            if (cell.wmsDivision) {
+                info += `🏢 Дивизион: ${cell.wmsDivision}\n`;
+            }
+            if (cell.wmsZone) {
+                info += `🧭 Зона: ${cell.wmsZone}\n`;
+            }
+            if (cell.wmsBarcode) {
+                info += `🏷 ШК ячейки: ${cell.wmsBarcode}\n`;
+            }
+            if (cell.wmsPlacementDate) {
+                info += `📅 Дата размещения: ${cell.wmsPlacementDate}\n`;
+            }
             
             // Показываем все артикулы если они есть
             const articles = Array.isArray(cell.wmsArticles) ? cell.wmsArticles : [];
-            if (articles.length > 0) {
+            const articleDetails = Array.isArray(cell.wmsArticleDetails) ? cell.wmsArticleDetails : [];
+            if (articleDetails.length > 0) {
+                info += `📋 Артикулы (${articleDetails.length}):\n`;
+                articleDetails.forEach((art, idx) => {
+                    const name = art.name ? ` — ${art.name}` : '';
+                    info += `   ${idx + 1}. ${art.code}${name}\n`;
+                });
+            } else if (articles.length > 0) {
                 info += `📋 Артикулы (${articles.length}):\n`;
                 articles.forEach((art, idx) => {
                     info += `   ${idx + 1}. ${art}\n`;
