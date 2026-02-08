@@ -359,6 +359,8 @@
             flex: 1;
             position: relative;
             overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            max-height: 100vh;
         }
 
         .inspection-sections-carousel {
@@ -1049,6 +1051,9 @@
                 <button class="control-btn" id="topology-btn" style="background-color: #9b59b6; color: white;">
                     📊 Топология
                 </button>
+                <button class="control-btn" id="reset-all-btn" style="background-color: #e74c3c; color: white;">
+                    🔄 Сброс
+                </button>
             </div>
         </div>
 
@@ -1066,9 +1071,14 @@
         <!-- Заголовок проверки -->
         <div class="inspection-header">
             <div class="inspection-title" id="inspection-alley-title">Аллея A01 - Проверка</div>
-            <button class="exit-inspection-btn" id="exit-inspection-btn">
-                ← Завершить проверку
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <button class="exit-inspection-btn" id="toggle-inspection-controls" style="background-color: #f39c12; color: white;">
+                    ⬆ Свернуть
+                </button>
+                <button class="exit-inspection-btn" id="exit-inspection-btn">
+                    ← Завершить проверку
+                </button>
+            </div>
         </div>
 
         <!-- Карусель секций -->
@@ -2328,6 +2338,38 @@
         function openModal(cell) {
             console.log('Открытие модального окна для:', cell.id);
             document.getElementById('modal-address').textContent = cell.id;
+            
+            // Добавляем информацию о статусе и артикулах
+            const modalContent = document.querySelector('.modal');
+            let infoDiv = modalContent.querySelector('.modal-cell-info');
+            
+            if (!infoDiv) {
+                infoDiv = document.createElement('div');
+                infoDiv.className = 'modal-cell-info';
+                infoDiv.style.cssText = 'background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem; border-left: 3px solid #3498db;';
+                const modalAddress = document.getElementById('modal-address');
+                modalAddress.parentNode.insertBefore(infoDiv, modalAddress.nextSibling);
+            }
+            
+            // Формируем информацию о ячейке
+            let info = '';
+            if (cell.systemStatus === 'occupied') {
+                info += `📦 Статус: Занята\n`;
+            } else if (cell.systemStatus === 'empty') {
+                info += `⬜ Статус: Свободна\n`;
+            }
+            
+            // Показываем все артикулы если они есть
+            const articles = Array.isArray(cell.wmsArticles) ? cell.wmsArticles : [];
+            if (articles.length > 0) {
+                info += `📋 Артикулы (${articles.length}):\n`;
+                articles.forEach((art, idx) => {
+                    info += `   ${idx + 1}. ${art}\n`;
+                });
+            }
+            
+            infoDiv.textContent = info.trim() || 'Информация отсутствует';
+            
             document.getElementById('modal-overlay').classList.add('show');
         }
 
@@ -2626,6 +2668,61 @@
             }
         }
 
+        function resetAllData() {
+            const confirmed = confirm('⚠️ Вы уверены? Это удалит ВСЕ данные:\n- Все результаты проверки\n- Загруженные XLS данные\n- История действий\n\nВернуть назад невозможно!');
+            
+            if (!confirmed) return;
+            
+            // Очищаем localStorage
+            localStorage.removeItem('warehouseInspectionData');
+            localStorage.removeItem('warehouseAuditLog');
+            localStorage.removeItem('warehouseWMSData');
+            
+            // Сбрасываем глобальные данные
+            warehousesData = {};
+            auditLog = [];
+            wmsData = { cellsData: new Map() };
+            
+            // Переинициализируем структуру склада
+            generateWarehouseData();
+            
+            // Возвращаемся в режим обзора
+            isInspecting = false;
+            document.getElementById('inspection-mode').style.display = 'none';
+            document.getElementById('overview-mode').style.display = 'flex';
+            document.getElementById('topology-fullscreen-mode').style.display = 'none';
+            
+            // Обновляем интерфейс
+            updateOverviewDisplay();
+            currentAlley = 'A01';
+            document.getElementById('alley-select').value = 'A01';
+            
+            showNotification('✅ Все данные успешно очищены!', 'success');
+        }
+
+        function toggleInspectionControls() {
+            const carousel = document.getElementById('carousel-container');
+            const header = document.querySelector('.inspection-header');
+            const btn = document.getElementById('toggle-inspection-controls');
+            const isVisible = carousel.style.maxHeight !== '0px' && carousel.style.maxHeight !== '';
+            
+            if (isVisible) {
+                carousel.style.maxHeight = '0px';
+                carousel.style.overflow = 'hidden';
+                carousel.style.padding = '0px';
+                header.style.borderBottom = 'none';
+                btn.textContent = '⬇ Развернуть';
+                btn.style.backgroundColor = '#27ae60';
+            } else {
+                carousel.style.maxHeight = '100vh';
+                carousel.style.overflow = 'visible';
+                carousel.style.padding = '20px';
+                header.style.borderBottom = '2px solid #e74c3c';
+                btn.textContent = '⬆ Свернуть';
+                btn.style.backgroundColor = '#f39c12';
+            }
+        }
+
         // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
         function setupEventListeners() {
             // Выбор аллеи в режиме обзора
@@ -2653,6 +2750,12 @@
             
             // Кнопка свернуть/развернуть панель в топологии
             document.getElementById('toggle-topology-controls').addEventListener('click', toggleTopologyControls);
+            
+            // Кнопка сброса всех данных
+            document.getElementById('reset-all-btn').addEventListener('click', resetAllData);
+            
+            // Кнопка свертывания панели в режиме проверки
+            document.getElementById('toggle-inspection-controls').addEventListener('click', toggleInspectionControls);
             
             // Кнопка завершения проверки
             document.getElementById('exit-inspection-btn').addEventListener('click', exitInspection);
