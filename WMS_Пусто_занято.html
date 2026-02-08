@@ -1046,6 +1046,9 @@
                 <button class="control-btn export-btn" id="export-btn">
                     💾 Экспорт CSV
                 </button>
+                <button class="control-btn" id="topology-btn" style="background-color: #9b59b6; color: white;">
+                    📊 Топология
+                </button>
             </div>
         </div>
 
@@ -1086,6 +1089,22 @@
 
             <!-- Подсказка для свайпа -->
             <div class="swipe-hint" id="swipe-hint">Свайпните влево или вправо для навигации</div>
+        </div>
+    </div>
+
+    <!-- РЕЖИМ ПОЛНОЭКРАННОЙ ТОПОЛОГИИ -->
+    <div id="topology-fullscreen-mode" style="display: none; height: 100vh; flex-direction: column; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999; background: white;">
+        <!-- Скрываемая панель управления топологией -->
+        <div id="topology-control-panel" style="background: white; padding: 10px 20px; border-bottom: 1px solid #e1e8ed; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #2c3e50; font-size: 1.1rem; margin: 0; flex: 1;">📍 Топология Склада</h2>
+            <button id="toggle-topology-controls" style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;" title="Свернуть панель">⬆ Свернуть</button>
+            <button id="exit-topology-btn" style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">✕ Закрыть</button>
+        </div>
+        <!-- Контейнер топологии со скроллом -->
+        <div id="topology-scrollable" style="flex: 1; overflow-y: auto; overflow-x: hidden; padding: 15px;">
+            <div id="topology-alleys-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Аллеи будут добавлены динамически -->
+            </div>
         </div>
     </div>
 
@@ -2229,13 +2248,14 @@
             cellElement.appendChild(cellPosition);
 
             // Бейдж конфликтов артикулов (если для одного адреса найдено несколько разных артикулов)
+            // Показывать только для занятых ячеек с конфликтами (несколько артикулов)
             const articles = Array.isArray(cell.wmsArticles) ? cell.wmsArticles : [];
-            const hasConflict = !!cell.wmsConflict || (articles && articles.length > 1);
+            const hasConflict = cell.systemStatus === 'occupied' && articles && articles.length > 1;
             if (hasConflict) {
                 const badge = document.createElement('div');
                 badge.className = 'conflict-badge';
-                badge.title = articles && articles.length > 0 ? `Артикулы: ${articles.join(', ')}` : 'Несколько артикулов';
-                badge.textContent = articles && articles.length > 1 ? String(articles.length) : '!' ;
+                badge.title = `Артикулы: ${articles.join(', ')}`;
+                badge.textContent = String(articles.length);
                 cellElement.appendChild(badge);
             }
             
@@ -2383,6 +2403,12 @@
                 updateOverviewDisplay();
             }
             
+            // Обновляем топологию если она открыта
+            const topologyMode = document.getElementById('topology-fullscreen-mode');
+            if (topologyMode && topologyMode.style.display === 'flex') {
+                renderTopologyGrid();
+            }
+            
             // Показываем уведомление
             let message = '';
             let type = 'info';
@@ -2479,6 +2505,127 @@
             }, 3000);
         }
 
+        // ========== ПОЛНОЭКРАННАЯ ТОПОЛОГИЯ ==========
+        function openTopologyFullscreen() {
+            document.getElementById('overview-mode').style.display = 'none';
+            document.getElementById('inspection-mode').style.display = 'none';
+            document.getElementById('topology-fullscreen-mode').style.display = 'flex';
+            renderTopologyGrid();
+        }
+
+        function closeTopologyFullscreen() {
+            document.getElementById('topology-fullscreen-mode').style.display = 'none';
+            document.getElementById('overview-mode').style.display = 'flex';
+        }
+
+        function toggleTopologyControls() {
+            const panel = document.getElementById('topology-control-panel');
+            const btn = document.getElementById('toggle-topology-controls');
+            const isVisible = panel.style.height !== '0px';
+            
+            if (isVisible) {
+                panel.style.maxHeight = '0px';
+                panel.style.padding = '0px';
+                panel.style.overflow = 'hidden';
+                btn.textContent = '⬇ Развернуть';
+            } else {
+                panel.style.maxHeight = 'auto';
+                panel.style.padding = '10px 20px';
+                btn.textContent = '⬆ Свернуть';
+            }
+        }
+
+        function renderTopologyGrid() {
+            const grid = document.getElementById('topology-alleys-grid');
+            grid.innerHTML = '';
+            
+            for (let alleyNum = 1; alleyNum <= 14; alleyNum++) {
+                const alley = `A${alleyNum.toString().padStart(2, '0')}`;
+                
+                if (!warehousesData[alley]) continue;
+                
+                const alleyCard = document.createElement('div');
+                alleyCard.style.cssText = 'border: 2px solid #3498db; border-radius: 8px; padding: 12px; background: #f8fafc;';
+                
+                const alleyTitle = document.createElement('h3');
+                alleyTitle.textContent = `Аллея ${alley}`;
+                alleyTitle.style.cssText = 'color: #2c3e50; margin: 0 0 10px 0; font-size: 0.95rem;';
+                alleyCard.appendChild(alleyTitle);
+                
+                const sectionsContainer = document.createElement('div');
+                sectionsContainer.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-height: 400px; overflow-y: auto;';
+                
+                for (let sectionNum = 1; sectionNum <= totalSections; sectionNum++) {
+                    const section = sectionNum.toString().padStart(2, '0');
+                    const sectionData = warehousesData[alley][section];
+                    
+                    if (!sectionData) continue;
+                    
+                    const cells = sectionData.cells;
+                    const checkedCount = cells.filter(c => c.checked && c.actualStatus !== 'skipped').length;
+                    const discrepancyCount = cells.filter(c => c.actualStatus === 'discrepancy').length;
+                    const totalCount = cells.length;
+                    const progress = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+                    
+                    // Определяем цвет секции
+                    let bgColor = '#ecf0f1'; // серый - не проверена
+                    let textColor = '#7f8c8d';
+                    
+                    if (progress === 100) {
+                        bgColor = '#d5f4e6'; // зеленый - завершена
+                        textColor = '#27ae60';
+                    } else if (progress > 0) {
+                        bgColor = '#d6eaf8'; // голубой - в процессе
+                        textColor = '#3498db';
+                    }
+                    
+                    if (discrepancyCount > 0) {
+                        bgColor = '#fdebd0'; // оранжевый - есть проблемы
+                        textColor = '#e67e22';
+                    }
+                    
+                    const sectionCard = document.createElement('div');
+                    sectionCard.dataset.alley = alley;
+                    sectionCard.dataset.section = section;
+                    sectionCard.style.cssText = `
+                        background: ${bgColor};
+                        border: 1px solid #bdc3c7;
+                        border-radius: 4px;
+                        padding: 6px;
+                        text-align: center;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    `;
+                    sectionCard.onmouseover = () => sectionCard.style.transform = 'scale(1.05)';
+                    sectionCard.onmouseout = () => sectionCard.style.transform = 'scale(1)';
+                    
+                    const label = document.createElement('div');
+                    label.style.cssText = `color: ${textColor}; font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;`;
+                    label.textContent = `Сек. ${section}`;
+                    
+                    const progress_text = document.createElement('div');
+                    progress_text.style.cssText = `color: ${textColor}; font-size: 0.7rem;`;
+                    progress_text.textContent = `${progress}% (${checkedCount}/${totalCount})`;
+                    
+                    sectionCard.appendChild(label);
+                    sectionCard.appendChild(progress_text);
+                    
+                    // Клик открывает секцию для проверки
+                    sectionCard.addEventListener('click', () => {
+                        currentAlley = alley;
+                        currentSectionIndex = sectionNum - 1;
+                        closeTopologyFullscreen();
+                        startInspection();
+                    });
+                    
+                    sectionsContainer.appendChild(sectionCard);
+                }
+                
+                alleyCard.appendChild(sectionsContainer);
+                grid.appendChild(alleyCard);
+            }
+        }
+
         // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
         function setupEventListeners() {
             // Выбор аллеи в режиме обзора
@@ -2497,6 +2644,15 @@
             
             // Кнопка экспорта CSV
             document.getElementById('export-btn').addEventListener('click', exportToCSV);
+            
+            // Кнопка открытия топологии
+            document.getElementById('topology-btn').addEventListener('click', openTopologyFullscreen);
+            
+            // Кнопка закрытия топологии
+            document.getElementById('exit-topology-btn').addEventListener('click', closeTopologyFullscreen);
+            
+            // Кнопка свернуть/развернуть панель в топологии
+            document.getElementById('toggle-topology-controls').addEventListener('click', toggleTopologyControls);
             
             // Кнопка завершения проверки
             document.getElementById('exit-inspection-btn').addEventListener('click', exitInspection);
